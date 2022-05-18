@@ -25,20 +25,14 @@ class LightningModel(pl.LightningModule):
         
         self.model = self.models[HPARAMS['model_type']](upstream_model=HPARAMS['upstream_model'], num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'])
             
+        self.classification_criterion = nn.CrossEntropyLoss()
+        self.bce_criterion = nn.BCELoss()
+        self.regression_criterion = MSE()
         self.mae_criterion = MAE()
         self.rmse_criterion = RMSELoss()
         self.accuracy = Accuracy()
 
-        self.uncertainty_loss = UncertaintyLoss()
-
         self.lr = HPARAMS['lr']
-
-        self.csv_path = HPARAMS['speaker_csv_path']
-        self.df = pd.read_csv(self.csv_path)
-        self.h_mean = self.df[self.df['Use'] == 'TRN']['height'].mean()
-        self.h_std = self.df[self.df['Use'] == 'TRN']['height'].std()
-        self.a_mean = self.df[self.df['Use'] == 'TRN']['age'].mean()
-        self.a_std = self.df[self.df['Use'] == 'TRN']['age'].std()
 
         print(f"Model Details: #Params = {self.count_total_parameters()}\t#Trainable Params = {self.count_trainable_parameters()}")
 
@@ -56,19 +50,26 @@ class LightningModel(pl.LightningModule):
         return [optimizer]
 
     def training_step(self, batch, batch_idx):
-        x, y_h, y_a, y_g, x_len = batch
+        x, y_h, y_h_r, y_a, y_a_r, y_g, x_len = batch
         y_h = torch.stack(y_h).reshape(-1,)
+        y_h_r = torch.stack(y_h_r).reshape(-1,)
         y_a = torch.stack(y_a).reshape(-1,)
+        y_a_r = torch.stack(y_a_r).reshape(-1,)
         y_g = torch.stack(y_g).reshape(-1,)
         
-        y_hat_h, y_hat_a, y_hat_g = self(x, x_len)
-        y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
-        y_hat_h, y_hat_a, y_hat_g = y_hat_h.view(-1).float(), y_hat_a.view(-1).float(), y_hat_g.view(-1).float()
+        y_hat_h, y_hat_h_r, y_hat_a, y_hat_a_r, y_hat_g = self(x, x_len)
+        y_h, y_h_r, y_a, y_a_r, y_g = y_h.view(-1).float(), y_h_r.view(-1).long(), y_a.view(-1).float(), y_a_r.view(-1).long(), y_g.view(-1).float()
+        y_hat_h, y_hat_h_r, y_hat_a, y_hat_a_r, y_hat_g = y_hat_h.view(-1).float(), y_hat_h_r.float(), y_hat_a.view(-1).float(), y_hat_a_r.float(), y_hat_g.view(-1).float()
 
-        loss = self.uncertainty_loss(torch.cat((y_hat_h, y_hat_a, y_hat_g)), torch.cat((y_h, y_a, y_g)))
+        height_loss = self.regression_criterion(y_hat_h, y_h)
+        height_r_loss = self.classification_criterion(y_hat_h_r, y_h_r)
+        age_loss = self.regression_criterion(y_hat_a, y_a)
+        age_r_loss = self.classification_criterion(y_hat_a_r, y_a_r)
+        gender_loss = self.bce_criterion(y_hat_g, y_g)
+        loss = height_loss + height_r_loss + age_loss + age_r_loss + gender_loss
 
-        height_mae = self.mae_criterion(y_hat_h*self.h_std+self.h_mean, y_h*self.h_std+self.h_mean)
-        age_mae =self.mae_criterion(y_hat_a*self.a_std+self.a_mean, y_a*self.a_std+self.a_mean)
+        height_mae = self.mae_criterion(y_hat_h, y_h)
+        age_mae =self.mae_criterion(y_hat_a, y_a)
         gender_acc = self.accuracy((y_hat_g>0.5).long(), y_g.long())
 
         return {'loss':loss, 
@@ -90,25 +91,33 @@ class LightningModel(pl.LightningModule):
         self.log('train/g',gender_acc, on_step=False, on_epoch=True, prog_bar=True)
 
     def validation_step(self, batch, batch_idx):
-        x, y_h, y_a, y_g, x_len = batch
+        x, y_h, y_h_r, y_a, y_a_r, y_g, x_len = batch
         y_h = torch.stack(y_h).reshape(-1,)
+        y_h_r = torch.stack(y_h_r).reshape(-1,)
         y_a = torch.stack(y_a).reshape(-1,)
+        y_a_r = torch.stack(y_a_r).reshape(-1,)
         y_g = torch.stack(y_g).reshape(-1,)
         
-        y_hat_h, y_hat_a, y_hat_g = self(x, x_len)
-        y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
-        y_hat_h, y_hat_a, y_hat_g = y_hat_h.view(-1).float(), y_hat_a.view(-1).float(), y_hat_g.view(-1).float()
+        y_hat_h, y_hat_h_r, y_hat_a, y_hat_a_r, y_hat_g = self(x, x_len)
+        y_h, y_h_r, y_a, y_a_r, y_g = y_h.view(-1).float(), y_h_r.view(-1).long(), y_a.view(-1).float(), y_a_r.view(-1).long(), y_g.view(-1).float()
+        y_hat_h, y_hat_h_r, y_hat_a, y_hat_a_r, y_hat_g = y_hat_h.view(-1).float(), y_hat_h_r.float(), y_hat_a.view(-1).float(), y_hat_a_r.float(), y_hat_g.view(-1).float()
 
-        loss = self.uncertainty_loss(torch.cat((y_hat_h, y_hat_a, y_hat_g)), torch.cat((y_h, y_a, y_g)))
+        height_loss = self.regression_criterion(y_hat_h, y_h)
+        height_r_loss = self.classification_criterion(y_hat_h_r, y_h_r)
+        age_loss = self.regression_criterion(y_hat_a, y_a)
+        age_r_loss = self.classification_criterion(y_hat_a_r, y_a_r)
+        gender_loss = self.bce_criterion(y_hat_g, y_g)
+        loss = height_loss + height_r_loss + age_loss + age_r_loss + gender_loss
 
-        height_mae = self.mae_criterion(y_hat_h*self.h_std+self.h_mean, y_h*self.h_std+self.h_mean)
-        age_mae = self.mae_criterion(y_hat_a*self.a_std+self.a_mean, y_a*self.a_std+self.a_mean)
+        height_mae = self.mae_criterion(y_hat_h, y_h)
+        age_mae = self.mae_criterion(y_hat_a, y_a)
         gender_acc = self.accuracy((y_hat_g>0.5).long(), y_g.long())
 
         return {'val_loss':loss, 
                 'val_height_mae':height_mae.item(),
                 'val_age_mae':age_mae.item(),
-                'val_gender_acc':gender_acc}
+                'val_gender_acc':gender_acc
+                }
 
     def validation_epoch_end(self, outputs):
         n_batch = len(outputs)
@@ -123,14 +132,16 @@ class LightningModel(pl.LightningModule):
         self.log('val/g',gender_acc, on_step=False, on_epoch=True, prog_bar=True)
 
     def test_step(self, batch, batch_idx):
-        x, y_h, y_a, y_g, x_len = batch
+        x, y_h, y_h_r, y_a, y_a_r, y_g, x_len = batch
         y_h = torch.stack(y_h).reshape(-1,)
+        y_h_r = torch.stack(y_h_r).reshape(-1,)
         y_a = torch.stack(y_a).reshape(-1,)
+        y_a_r = torch.stack(y_a_r).reshape(-1,)
         y_g = torch.stack(y_g).reshape(-1,)
         
-        y_hat_h, y_hat_a, y_hat_g = self(x, x_len)
-        y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
-        y_hat_h, y_hat_a, y_hat_g = y_hat_h.view(-1).float(), y_hat_a.view(-1).float(), y_hat_g.view(-1).float()
+        y_hat_h, y_hat_h_r, y_hat_a, y_hat_a_r, y_hat_g = self(x, x_len)
+        y_h, y_h_r, y_a, y_a_r, y_g = y_h.view(-1).float(), y_h_r.view(-1).long(), y_a.view(-1).float(), y_a_r.view(-1).long(), y_g.view(-1).float()
+        y_hat_h, y_hat_h_r, y_hat_a, y_hat_a_r, y_hat_g = y_hat_h.view(-1).float(), y_hat_h_r.view(-1).float(), y_hat_a.view(-1).float(), y_hat_a_r.view(-1).float(), y_hat_g.view(-1).float()
 
         gender_acc = self.accuracy((y_hat_g>0.5).long(), y_g.long())
 
@@ -138,17 +149,17 @@ class LightningModel(pl.LightningModule):
         female_idx = torch.nonzero(idx).view(-1)
         male_idx = torch.nonzero(1-idx).view(-1)
 
-        male_height_mae = self.mae_criterion(y_hat_h[male_idx]*self.h_std+self.h_mean, y_h[male_idx]*self.h_std+self.h_mean)
-        male_age_mae = self.mae_criterion(y_hat_a[male_idx]*self.a_std+self.a_mean, y_a[male_idx]*self.a_std+self.a_mean)
+        male_height_mae = self.mae_criterion(y_hat_h[male_idx], y_h[male_idx])
+        male_age_mae = self.mae_criterion(y_hat_a[male_idx], y_a[male_idx])
 
-        femal_height_mae = self.mae_criterion(y_hat_h[female_idx]*self.h_std+self.h_mean, y_h[female_idx]*self.h_std+self.h_mean)
-        female_age_mae = self.mae_criterion(y_hat_a[female_idx]*self.a_std+self.a_mean, y_a[female_idx]*self.a_std+self.a_mean)
+        femal_height_mae = self.mae_criterion(y_hat_h[female_idx], y_h[female_idx])
+        female_age_mae = self.mae_criterion(y_hat_a[female_idx], y_a[female_idx])
 
-        male_height_rmse = self.rmse_criterion(y_hat_h[male_idx]*self.h_std+self.h_mean, y_h[male_idx]*self.h_std+self.h_mean)
-        male_age_rmse = self.rmse_criterion(y_hat_a[male_idx]*self.a_std+self.a_mean, y_a[male_idx]*self.a_std+self.a_mean)
+        male_height_rmse = self.rmse_criterion(y_hat_h[male_idx], y_h[male_idx])
+        male_age_rmse = self.rmse_criterion(y_hat_a[male_idx], y_a[male_idx])
 
-        femal_height_rmse = self.rmse_criterion(y_hat_h[female_idx]*self.h_std+self.h_mean, y_h[female_idx]*self.h_std+self.h_mean)
-        female_age_rmse = self.rmse_criterion(y_hat_a[female_idx]*self.a_std+self.a_mean, y_a[female_idx]*self.a_std+self.a_mean)
+        femal_height_rmse = self.rmse_criterion(y_hat_h[female_idx], y_h[female_idx])
+        female_age_rmse = self.rmse_criterion(y_hat_a[female_idx], y_a[female_idx])
 
         return {
                 'male_height_mae':male_height_mae.item(),
@@ -159,7 +170,8 @@ class LightningModel(pl.LightningModule):
                 'male_age_rmse':male_age_rmse.item(),
                 'femal_height_rmse':femal_height_rmse.item(),
                 'female_age_rmse':female_age_rmse.item(),
-                'test_gender_acc':gender_acc}
+                'test_gender_acc':gender_acc
+                }
 
     def test_epoch_end(self, outputs):
         n_batch = len(outputs)
@@ -183,6 +195,7 @@ class LightningModel(pl.LightningModule):
                 'male_age_rmse':male_age_rmse.item(),
                 'femal_height_rmse':femal_height_rmse.item(),
                 'female_age_rmse': female_age_rmse.item(),
-                'test_gender_acc':gender_acc.item()}
+                'test_gender_acc':gender_acc.item()
+                }
         self.logger.log_hyperparams(pbar)
         self.log_dict(pbar)

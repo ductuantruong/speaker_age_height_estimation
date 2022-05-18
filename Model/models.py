@@ -23,8 +23,14 @@ class Wav2vec2BiEncoder(nn.Module):
         
         self.dropout = nn.Dropout(0.5)
 
-        self.height_regressor = nn.Linear(1024, 1)
-        self.age_regressor = nn.Linear(1024, 1)
+        self.fc_height = nn.Linear(1024, 70)
+        self.fc_age = nn.Linear(1024, 100)
+
+        self.softmax = nn.Softmax()
+
+        self.height_regressor = nn.Linear(70, 1)
+        self.age_regressor = nn.Linear(100, 1)
+        
         self.gender_classifier = nn.Sequential(
             nn.Linear(2*1024, 1),
             nn.Sigmoid()
@@ -41,6 +47,8 @@ class Wav2vec2BiEncoder(nn.Module):
         xF = self.dropout(self.fcF(xF))
         gender = self.gender_classifier(torch.cat((xM, xF), dim=1))
         output = (1-gender)*xM + gender*xF
-        height = self.height_regressor(output)
-        age = self.age_regressor(output)
-        return height, age, gender
+        height_r = self.softmax(self.fc_height(output))
+        age_r = self.softmax(self.fc_age(output))
+        height = self.height_regressor(self.fc_height(output))
+        age = self.age_regressor(self.fc_age(output))
+        return height, height_r, age, age_r, gender
