@@ -26,7 +26,7 @@ class Wav2vec2BiEncoder(nn.Module):
         self.fc_height = nn.Linear(1024, 70)
         self.fc_age = nn.Linear(1024, 100)
 
-        self.softmax = nn.Softmax()
+        self.softmax = nn.Softmax(dim=1)
 
         self.height_regressor = nn.Linear(70, 1)
         self.age_regressor = nn.Linear(100, 1)
