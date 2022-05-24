@@ -26,7 +26,7 @@ class LightningModel(pl.LightningModule):
         self.model = self.models[HPARAMS['model_type']](upstream_model=HPARAMS['upstream_model'], num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'])
             
         self.classification_criterion = nn.CrossEntropyLoss()
-        self.bce_criterion = nn.BCELoss()
+        self.bce_criterion = MSE()
         self.regression_criterion = MSE()
         self.mae_criterion = MAE()
         self.rmse_criterion = RMSELoss()
@@ -187,7 +187,8 @@ class LightningModel(pl.LightningModule):
 
         gender_acc = torch.tensor([x['test_gender_acc'] for x in outputs]).mean()
 
-        pbar = {'male_height_mae' : male_height_mae.item(),
+        pbar = {
+                'male_height_mae' : male_height_mae.item(),
                 'male_age_mae':male_age_mae.item(),
                 'female_height_mae':female_height_mae.item(),
                 'female_age_mae': female_age_mae.item(),
