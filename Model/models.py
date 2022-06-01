@@ -1,12 +1,13 @@
 import torch
 import torch.nn as nn
-from transformers import Wav2Vec2Model
+import fairseq
 
 class Wav2vec2BiEncoder(nn.Module):
     def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768):
         super().__init__()
-        self.upstream = Wav2Vec2Model.from_pretrained('facebook/wav2vec2-base-960h')
-        
+        model, cfg, task = fairseq.checkpoint_utils.load_model_ensemble_and_task(['wav2vec_small.pt'])
+        self.upstream = model[0]
+
         for param in self.upstream.parameters():
             param.requires_grad = True
        
@@ -32,7 +33,7 @@ class Wav2vec2BiEncoder(nn.Module):
         )
 
     def forward(self, x, x_len):
-        x = self.upstream(x, output_hidden_states=True).hidden_states[-1]
+        x = self.upstream.extract_features(x, padding_mask=None, layer=8)['layer_results'][-1][0].transpose(0,1)
         xM = self.transformer_encoder_M(x)
         xF = self.transformer_encoder_F(x)
         xM = self.dropout(torch.cat((torch.mean(xM, dim=1), torch.std(xM, dim=1)), dim=1))
