@@ -118,8 +118,9 @@ class ResidualAdapterBlock(nn.Module):
         self.up_proj = nn.Linear(self.proj_dim, self.input_dim)
 
     def forward(self, x, self_attn_padding_mask=None, need_weights=None):
+        residual = x
         x = self.ln(x)
         x = self.down_proj(x)
         x = self.relu(x)
         x = self.up_proj(x)
-        return x, None
+        return x + residual, None
