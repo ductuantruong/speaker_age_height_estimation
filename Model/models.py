@@ -14,6 +14,9 @@ class Wav2vec2BiEncoder(nn.Module):
         for param in self.upstream.parameters():
             param.requires_grad = False
        
+        for param in self.upstream.model.feature_extractor.conv_layers[5:].parameters():
+            param.requires_grad = True
+        
         for i, encoder_layer in enumerate(self.upstream.model.encoder.layers):
             if i % 2 != 0:
                 for param in self.upstream.model.encoder.layers[i].parameters():
@@ -39,7 +42,7 @@ class Wav2vec2BiEncoder(nn.Module):
 
     def forward(self, x, x_len):
         x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
-        x = self.upstream(x)['last_hidden_state']
+        x = self.upstream(x)['hidden_state_2']
         xM = self.transformer_encoder_M(x)
         xF = self.transformer_encoder_F(x)
         xM = self.dropout(torch.cat((torch.mean(xM, dim=1), torch.std(xM, dim=1)), dim=1))
