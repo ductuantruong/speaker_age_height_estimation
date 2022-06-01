@@ -10,9 +10,12 @@ class Wav2vec2BiEncoder(nn.Module):
         models, cfg, task = fairseq.checkpoint_utils.load_model_ensemble_and_task(['base_vox_iter5.pt'])
         self.upstream = models[0]
 
+        for param in self.upstream.parameters():
+            param.requires_grad = False
+        
         for param in self.upstream.feature_extractor_audio.parameters():
             param.requires_grad = True
-        
+
         encoder_layer_M = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
         self.transformer_encoder_M = torch.nn.TransformerEncoder(encoder_layer_M, num_layers=num_layers)
         
