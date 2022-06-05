@@ -6,11 +6,17 @@ class Wav2vec2BiEncoder(nn.Module):
         super().__init__()
         self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
         
+        n_cnn_layer = len(self.upstream.model.feature_extractor.conv_layers)
+        for i in range(n_cnn_layer):
+            self.upstream.model.feature_extractor.conv_layers.insert(2*i + 1, AdapterBlock())
+        
         for param in self.upstream.parameters():
-            param.requires_grad = True
-       
-        for param in self.upstream.model.feature_extractor.conv_layers[:5].parameters():
             param.requires_grad = False
+       
+        for i, conv_layer in enumerate(self.upstream.model.feature_extractor.conv_layers):
+            if i % 2 != 0:
+                for param in self.upstream.model.feature_extractor.conv_layers[i].parameters():
+                    param.requires_grad = True
         
         encoder_layer_M = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
         self.transformer_encoder_M = torch.nn.TransformerEncoder(encoder_layer_M, num_layers=num_layers)
@@ -44,3 +50,15 @@ class Wav2vec2BiEncoder(nn.Module):
         height = self.height_regressor(output)
         age = self.age_regressor(output)
         return height, age, gender
+    
+class AdapterBlock(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv = nn.Conv1d(512, 512, kernel_size=1)
+        self.gn = nn.GroupNorm(num_groups=512, num_channels=512)
+
+    def forward(self, x):
+        residual = x
+        x = self.conv(x)
+        x = self.gn(x)
+        return x + residual
