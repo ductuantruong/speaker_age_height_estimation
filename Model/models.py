@@ -55,10 +55,10 @@ class AdapterBlock(nn.Module):
     def __init__(self):
         super().__init__()
         self.conv = nn.Conv1d(512, 512, kernel_size=1)
-        self.gn = nn.GroupNorm(num_groups=512, num_channels=512)
+        self.bn = nn.BatchNorm1d(num_features=512)
 
     def forward(self, x):
         residual = x
         x = self.conv(x)
-        x = self.gn(x)
+        x = self.bn(x)
         return x + residual
