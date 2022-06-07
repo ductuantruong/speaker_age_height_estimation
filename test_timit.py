@@ -96,12 +96,10 @@ if __name__ == "__main__":
             y_a = torch.stack(y_a).reshape(-1,)
             y_g = torch.stack(y_g).reshape(-1,)
             
-            y_hat_h, y_hat_a, y_hat_g = model(x, x_len)
+            y_hat_h, y_hat_g = model(x, x_len)
             y_hat_h = y_hat_h.to('cpu')
-            y_hat_a = y_hat_a.to('cpu')
             y_hat_g = y_hat_g.to('cpu')
             height_pred.append((y_hat_h*h_std+h_mean).item())
-            age_pred.append((y_hat_a*a_std+a_mean).item())
             gender_pred.append(y_hat_g>0.5)
 
             height_true.append((y_h*h_std+h_mean).item())
@@ -118,21 +116,15 @@ if __name__ == "__main__":
 
         hmae = mean_absolute_error(height_true[male_idx], height_pred[male_idx])
         hrmse = mean_squared_error(height_true[male_idx], height_pred[male_idx], squared=False)
-        amae = mean_absolute_error(age_true[male_idx], age_pred[male_idx])
-        armse = mean_squared_error(age_true[male_idx], age_pred[male_idx], squared=False)
-        print(hrmse, hmae, armse, amae)
+        print(hrmse, hmae)
 
         hmae = mean_absolute_error(height_true[female_idx], height_pred[female_idx])
         hrmse = mean_squared_error(height_true[female_idx], height_pred[female_idx], squared=False)
-        amae = mean_absolute_error(age_true[female_idx], age_pred[female_idx])
-        armse = mean_squared_error(age_true[female_idx], age_pred[female_idx], squared=False)
-        print(hrmse, hmae, armse, amae)
+        print(hrmse, hmae)
         
         hmae = mean_absolute_error(height_true, height_pred)
         hrmse = mean_squared_error(height_true, height_pred, squared=False)
-        amae = mean_absolute_error(age_true, age_pred)
-        armse = mean_squared_error(age_true, age_pred, squared=False)
-        print(hrmse, hmae, armse, amae)
+        print(hrmse, hmae)
         
         gender_pred_ = [int(pred[0][0] == True) for pred in gender_pred]
         print(accuracy_score(gender_true, gender_pred_))
