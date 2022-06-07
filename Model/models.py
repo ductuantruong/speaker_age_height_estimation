@@ -10,10 +10,11 @@ class Wav2vec2BiEncoder(nn.Module):
         self.dropout = nn.Dropout(0.1)
         
         for param in self.upstream.parameters():
-            param.requires_grad = True
-       
-        for param in self.upstream.model.feature_extractor.conv_layers[:5].parameters():
+            # param.requires_grad = True
             param.requires_grad = False
+       
+        # for param in self.upstream.model.feature_extractor.conv_layers[:5].parameters():
+            # param.requires_grad = False
 
         self.shared_cnn = nn.Sequential(
             nn.Dropout(p=0.1),
