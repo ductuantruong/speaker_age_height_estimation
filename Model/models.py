@@ -10,11 +10,11 @@ class Wav2vec2BiEncoder(nn.Module):
         self.dropout = nn.Dropout(0.1)
         
         for param in self.upstream.parameters():
-            # param.requires_grad = True
-            param.requires_grad = False
+            param.requires_grad = True
+            #param.requires_grad = False
        
-        # for param in self.upstream.model.feature_extractor.conv_layers[:5].parameters():
-            # param.requires_grad = False
+        for param in self.upstream.model.feature_extractor.conv_layers[:5].parameters():
+            param.requires_grad = False
 
         self.shared_cnn = nn.Sequential(
             nn.Dropout(p=0.1),
@@ -34,6 +34,7 @@ class Wav2vec2BiEncoder(nn.Module):
         
         encoder_layer_F = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
         self.transformer_encoder_F = torch.nn.TransformerEncoder(encoder_layer_F, num_layers=num_layers)
+
         self.fc_xv = nn.Linear(1024, feature_dim)
         self.fcM = nn.Linear(2*feature_dim, 1024)
         self.fcF = nn.Linear(2*feature_dim, 1024)
@@ -53,9 +54,9 @@ class Wav2vec2BiEncoder(nn.Module):
         x = self.dropout(x)
         x = x.reshape(batch_size * T_len, -1, self.feature_dim).transpose(-1, -2)
         x = self.shared_cnn(x)
-        stats = torch.cat((x.mean(dim=2), x.std(dim=2)), dim=1)
+        stats = torch.cat((torch.mean(x, dim=2), torch.std(x, dim=2, unbiased=False)), dim=1)
         x = self.fc_xv(stats)
-        x = x.view(batch_size, T_len, self.feature_dim)
+        x = x.reshape(batch_size, T_len, self.feature_dim)
         xM = self.transformer_encoder_M(x)
         xF = self.transformer_encoder_F(x)
         xM = torch.cat((torch.mean(xM, dim=1), torch.std(xM, dim=1)), dim=1)
