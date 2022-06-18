@@ -6,13 +6,13 @@
         "speaker_csv_path": "Dataset/data_info_height_age.csv"
     },
     "model_parameters": {
-        "batch_size": "8",
+        "batch_size": "2",
         "epochs": "200",
         "lr": "1e-6",
         "model_type": "Wav2vec2BiEncoder",
-        "upstream_model": "wav2vec2",
+        "upstream_model": "wav2vec2_xlsr",
         "_comment": "upstream model to be loaded from s3prl. Some of the upstream models are: wav2vec2, hubert, TERA, mockingjay",
-        "feature_dim": "768",
+        "feature_dim": "1024",
 	"narrow_band": false
     },
     "gpu": "-1",
