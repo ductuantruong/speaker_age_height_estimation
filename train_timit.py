@@ -35,9 +35,8 @@ import torch.nn.utils.rnn as rnn_utils
 def collate_fn(batch):
     (seq, height, age, gender) = zip(*batch)
     seql = [x.reshape(-1,) for x in seq]
-    seq_length = [x.shape[0] for x in seql]
     data = rnn_utils.pad_sequence(seql, batch_first=True, padding_value=0)
-    return data, height, age, gender, seq_length
+    return data, height, age, gender
 
 if __name__ == "__main__":
 
@@ -90,7 +89,7 @@ if __name__ == "__main__":
     ## Validation Dataloader
     valloader = data.DataLoader(
         valid_set, 
-        batch_size=1,
+        batch_size=2,
         # hparams.batch_size, 
         shuffle=False, 
         num_workers=hparams.n_workers,
