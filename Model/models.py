@@ -15,10 +15,10 @@ class Wav2vec2BiEncoder(nn.Module):
 
         self.encoder_weights = nn.ParameterList([nn.Parameter(torch.randn(1)) for i in range(self.n_upstream_encoder)])
                 
-        encoder_layer_M = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
+        encoder_layer_M = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8)
         self.transformer_encoder_M = torch.nn.TransformerEncoder(encoder_layer_M, num_layers=num_layers)
         
-        encoder_layer_F = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
+        encoder_layer_F = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8)
         self.transformer_encoder_F = torch.nn.TransformerEncoder(encoder_layer_F, num_layers=num_layers)
         
         self.fcM = nn.Linear(2*feature_dim, 1024)
