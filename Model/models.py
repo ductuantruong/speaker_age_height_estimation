@@ -31,8 +31,6 @@ class Wav2vec2BiEncoder(nn.Module):
         )
 
     def forward(self, x, x_len):
-        x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
-        x = self.upstream(x)['last_hidden_state']
         xM = self.transformer_encoder_M(x)
         xF = self.transformer_encoder_F(x)
         xM = self.dropout(torch.cat((torch.mean(xM, dim=1), torch.std(xM, dim=1)), dim=1))

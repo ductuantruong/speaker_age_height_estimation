@@ -2,7 +2,7 @@
     "model_name": "Wav2vec2BiEncoder",
     "dataDir": {
         "dir": "",
-        "data_path": "data/wav_data/",
+        "data_path": "data",
         "speaker_csv_path": "Dataset/data_info_height_age.csv"
     },
     "model_parameters": {
