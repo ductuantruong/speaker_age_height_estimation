@@ -14,8 +14,10 @@ class TIMITDataset(Dataset):
     hparams,
     is_train=True,
     ):
+        self.hparams = hparams
         self.wav_folder = wav_folder
         self.files = os.listdir(self.wav_folder)
+        print(len(self.files))
         self.csv_file = hparams.speaker_csv_path
         self.df = pd.read_csv(self.csv_file)
         self.is_train = is_train
@@ -37,8 +39,7 @@ class TIMITDataset(Dataset):
         height = self.df.loc[id, 'height']
         age =  self.df.loc[id, 'age']
         
-        wav_id = self.df.loc[idx, 'utt_id']
-        tensor_path = os.path.join(self.hparams.data_path, self.hparams.upstream_model, self.wav_folder, wav_id + '.pt')
+        tensor_path = os.path.join(self.hparams.data_path, self.hparams.upstream_model, 'hidden_state_11',  self.wav_folder.split('/')[-1], file[:-4] + '.pt')
         wav = torch.load(tensor_path, map_location=torch.device('cpu'))
         wav = wav.squeeze(0)
         
