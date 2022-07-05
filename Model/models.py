@@ -41,8 +41,10 @@ class Wav2vec2BiEncoder(nn.Module):
                 try:
                     hidden_state = self.upstream(x)['hidden_state_{}'.format(i)]
                     combined_feature += hidden_state * self.encoder_weights[i]
+                    del hidden_state
                     break
-                except:
+                except Exception as e:
+                    print(i, e)
                     pass
         x = combined_feature
         xM = self.transformer_encoder_M(x)
