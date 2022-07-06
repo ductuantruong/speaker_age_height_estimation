@@ -40,6 +40,7 @@ class TIMITDataset(Dataset):
         file = self.files[idx]
         id = file.split('_')[0][1:]
         g_id = file.split('_')[0]
+        speaker_id = id
         gender = self.gender_dict[self.df.loc[id, 'Sex']]
         height = self.df.loc[id, 'height']
         age =  self.df.loc[id, 'age']
@@ -96,4 +97,7 @@ class TIMITDataset(Dataset):
             age = lam*age + (1-lam)*mixup_age
             gender = lam*gender + (1-lam)*mixup_gender
             
-        return wav, torch.FloatTensor([height]), torch.FloatTensor([age]), torch.FloatTensor([gender])
+        if 'test' not in self.wav_folder.lower():            
+            return wav, torch.FloatTensor([height]), torch.FloatTensor([age]), torch.FloatTensor([gender])
+        else:
+            return wav, torch.FloatTensor([height]), torch.FloatTensor([age]), torch.FloatTensor([gender]), speaker_id
