@@ -13,7 +13,8 @@ class Wav2vec2BiEncoder(nn.Module):
         for param in self.upstream.model.feature_extractor.conv_layers[:5].parameters():
             param.requires_grad = False
 
-        self.encoder_weights = nn.ParameterList([nn.Parameter(torch.randn(1)) for i in range(self.n_upstream_encoder)])
+        #self.encoder_weights = nn.ParameterList([nn.Parameter(torch.randn(1)) for i in range(self.n_upstream_encoder)])
+        self.encoder_weights = nn.Linear(self.n_upstream_encoder, 1)
                 
         encoder_layer_M = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8)
         self.transformer_encoder_M = torch.nn.TransformerEncoder(encoder_layer_M, num_layers=num_layers)
@@ -35,18 +36,27 @@ class Wav2vec2BiEncoder(nn.Module):
 
     def forward(self, x, x_len):
         x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
-        combined_feature = 0
+        while True:
+            hidden_states = self.upstream(x)['hidden_states']
+            if len(hidden_states) == self.n_upstream_encoder + 1:
+                hidden_states = hidden_states[-12:]
+                break
+            else:
+                pass
+        """
         for i in range(self.n_upstream_encoder):
             while True:
                 try:
-                    hidden_state = self.upstream(x)['hidden_state_{}'.format(i)]
+                    hidden_state = hidden_states['hidden_state_{}'.format(i)]
                     combined_feature += hidden_state * self.encoder_weights[i]
-                    del hidden_state
                     break
                 except Exception as e:
-                    print(i, e)
+                    hidden_states.clear()
+                    hidden_states = self.upstream(x)
                     pass
         x = combined_feature
+        """
+        x = self.encoder_weights(torch.stack(hidden_states, dim=-1)).squeeze(-1)
         xM = self.transformer_encoder_M(x)
         xF = self.transformer_encoder_F(x)
         xM = self.dropout(torch.cat((torch.mean(xM, dim=1), torch.std(xM, dim=1)), dim=1))
