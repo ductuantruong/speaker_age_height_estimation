@@ -2,13 +2,16 @@ import torch
 import torch.nn as nn
 
 class Wav2vec2BiEncoder(nn.Module):
-    def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768):
+    def __init__(self, upstream_model='wav2vec2', num_upstream_encoder=12, num_layers=6, feature_dim=768):
         super().__init__()
         
-        encoder_layer_M = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
+        self.num_upstream_encoder = num_upstream_encoder
+        self.encoder_weights = nn.ParameterList([nn.Parameter(torch.randn(1)) for i in range(num_upstream_encoder)])
+
+        encoder_layer_M = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8)
         self.transformer_encoder_M = torch.nn.TransformerEncoder(encoder_layer_M, num_layers=num_layers)
         
-        encoder_layer_F = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
+        encoder_layer_F = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8)
         self.transformer_encoder_F = torch.nn.TransformerEncoder(encoder_layer_F, num_layers=num_layers)
         
         self.fcM = nn.Linear(2*feature_dim, 1024)
@@ -24,6 +27,13 @@ class Wav2vec2BiEncoder(nn.Module):
         )
 
     def forward(self, x, x_len):
+        combined_feature = 0
+        for i in range(self.num_upstream_encoder):
+            hidden_state = x.select(1, i)
+            combined_feature += hidden_state * self.encoder_weights[i]
+        x.detach()
+        del x
+        x = combined_feature
         xM = self.transformer_encoder_M(x)
         xF = self.transformer_encoder_F(x)
         xM = self.dropout(torch.cat((torch.mean(xM, dim=1), torch.std(xM, dim=1)), dim=1))

@@ -27,6 +27,8 @@ class TIMITConfig(object):
     #See the available models here: https://github.com/s3prl/s3prl/blob/master/s3prl/upstream/README.md
     upstream_model = config['model_parameters']['upstream_model']
 
+    num_upstream_encoder = 12
+
     # number of layers in encoder (transformers)
     num_layers = 6
 
