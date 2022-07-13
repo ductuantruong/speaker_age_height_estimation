@@ -120,13 +120,12 @@ if __name__ == "__main__":
             gender_pred.append(y_hat_g>0.5)
 
             for i, speaker_id in enumerate(batch_speaker_id):
-                speaker_age_pred_dict[speaker_id].append(age_pred[i])
-                speaker_height_pred_dict[speaker_id].append(height_pred[i])
+                speaker_age_pred_dict[speaker_id].append(unnormalize_age_pred)
+                speaker_height_pred_dict[speaker_id].append(unnormalize_height_pred)
             
             height_true.append((y_h*h_std+h_mean).item())
             age_true.append(( y_a*a_std+a_mean).item())
             gender_true.append(y_g[0])
-            break
 
         for speaker_id in list_speaker_id:
             speaker_age_pred_dict[speaker_id] = sum(speaker_age_pred_dict[speaker_id])/len(speaker_age_pred_dict[speaker_id])
