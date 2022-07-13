@@ -6,8 +6,12 @@ import torch
 import torchaudio
 import argparse
 import random
+import math
 
 def mix_audio(signal, noise, snr):
+    if len(noise) < len(signal):
+        len_ratio = len(signal)//len(noise) + 1
+        noise = noise.repeat(len_ratio)
     noise = noise[(len(noise)//2 - len(signal)//2):(len(noise)//2 + len(signal)//2 + len(signal)%2)]
     signal_energy = np.mean(signal**2)
     noise_energy = np.mean(noise**2)
