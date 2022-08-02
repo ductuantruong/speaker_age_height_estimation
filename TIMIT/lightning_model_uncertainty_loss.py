@@ -52,16 +52,17 @@ class LightningModel(pl.LightningModule):
         return [optimizer]
 
     def training_step(self, batch, batch_idx):
-        x, y_h, y_a, y_g, x_len = batch
+        x, y_h, y_a, y_h_dist, y_g, x_len = batch
         y_h = torch.stack(y_h).reshape(-1,)
         y_a = torch.stack(y_a).reshape(-1,)
+        y_h_dist = torch.stack(y_h_dist).reshape(-1,)
         y_g = torch.stack(y_g).reshape(-1,)
         
-        y_hat_h, y_hat_g = self(x, x_len)
-        y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
+        y_hat_h, y_hat_h_dist, y_hat_g = self(x, x_len)
+        y_h, y_a, y_h_dist, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_h_dist.view(-1).float(), y_g.view(-1).float()
         y_hat_h, y_hat_g = y_hat_h.view(-1).float(), y_hat_g.view(-1).float()
 
-        loss = self.uncertainty_loss(torch.cat((y_hat_h, y_hat_g)), torch.cat((y_h, y_g)))
+        loss = self.uncertainty_loss(torch.cat((y_hat_h, y_hat_g)), torch.cat((y_h, y_g)), y_hat_h_dist, y_h_dist)
 
         height_mae = self.mae_criterion(y_hat_h, y_h)
         gender_acc = self.accuracy((y_hat_g>0.5).long(), y_g.long())
@@ -82,16 +83,16 @@ class LightningModel(pl.LightningModule):
         self.log('train/g',gender_acc, on_step=False, on_epoch=True, prog_bar=True)
 
     def validation_step(self, batch, batch_idx):
-        x, y_h, y_a, y_g, x_len = batch
+        x, y_h, y_a, y_h_dist, y_g, x_len = batch
         y_h = torch.stack(y_h).reshape(-1,)
         y_a = torch.stack(y_a).reshape(-1,)
+        y_h_dist = torch.stack(y_h_dist).reshape(-1,)
         y_g = torch.stack(y_g).reshape(-1,)
         
-        y_hat_h, y_hat_g = self(x, x_len)
-        y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
+        y_hat_h, y_hat_h_dist, y_hat_g = self(x, x_len)
+        y_h, y_a, y_h_dist, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_h_dist.view(-1).float(), y_g.view(-1).float()
         y_hat_h, y_hat_g = y_hat_h.view(-1).float(), y_hat_g.view(-1).float()
-
-        loss = self.uncertainty_loss(torch.cat((y_hat_h, y_hat_g)), torch.cat((y_h, y_g)))
+        loss = self.uncertainty_loss(torch.cat((y_hat_h, y_hat_g)), torch.cat((y_h, y_g)), y_hat_h_dist, y_h_dist)
 
         height_mae = self.mae_criterion(y_hat_h, y_h)
         gender_acc = self.accuracy((y_hat_g>0.5).long(), y_g.long())
@@ -111,13 +112,14 @@ class LightningModel(pl.LightningModule):
         self.log('val/g',gender_acc, on_step=False, on_epoch=True, prog_bar=True)
 
     def test_step(self, batch, batch_idx):
-        x, y_h, y_a, y_g, x_len = batch
+        x, y_h, y_a, y_h_dist, y_g, x_len = batch
         y_h = torch.stack(y_h).reshape(-1,)
         y_a = torch.stack(y_a).reshape(-1,)
+        y_h_dist = torch.stack(y_h_dist).reshape(-1,)
         y_g = torch.stack(y_g).reshape(-1,)
         
-        y_hat_h, y_hat_g = self(x, x_len)
-        y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
+        y_hat_h, y_hat_h_dist, y_hat_g = self(x, x_len)
+        y_h, y_a, y_hat_h_dist, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_h_dist.view(-1).float(), y_g.view(-1).float()
         y_hat_h, y_hat_g = y_hat_h.view(-1).float(), y_hat_g.view(-1).float()
 
         gender_acc = self.accuracy((y_hat_g>0.5).long(), y_g.long())

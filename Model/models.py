@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 class Wav2vec2BiEncoder(nn.Module):
     def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768):
@@ -24,6 +25,7 @@ class Wav2vec2BiEncoder(nn.Module):
         self.dropout = nn.Dropout(0.5)
 
         self.height_regressor = nn.Linear(1024, 1)
+        self.height_estimator = nn.Linear(1024, 11)
         self.gender_classifier = nn.Sequential(
             nn.Linear(2*1024, 1),
             nn.Sigmoid()
@@ -41,4 +43,5 @@ class Wav2vec2BiEncoder(nn.Module):
         gender = self.gender_classifier(torch.cat((xM, xF), dim=1))
         output = (1-gender)*xM + gender*xF
         height = self.height_regressor(output)
-        return height, gender
+        height_distribution = F.softmax(self.height_estimator(output))
+        return height, height_distribution, gender

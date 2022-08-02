@@ -2,6 +2,7 @@ from torch.utils.data import Dataset
 import os
 import pandas as pd
 import torch
+from torch.distributions.normal import Normal
 import numpy as np
 
 import torchaudio
@@ -84,5 +85,7 @@ class TIMITDataset(Dataset):
             height = lam*height + (1-lam)*mixup_height
             age = lam*age + (1-lam)*mixup_age
             gender = lam*gender + (1-lam)*mixup_gender
-            
-        return wav, torch.FloatTensor([height]), torch.FloatTensor([age]), torch.FloatTensor([gender])
+
+        label_dist_transform = Normal(torch.tensor([height]), torch.tensor([4.0]))
+        heigh_dist = label_dist_transform.cdf(torch.Tensor(list(range(int(height) - 5, int(height) + 5 + 1))))
+        return wav, torch.FloatTensor([height]), torch.FloatTensor([age]), heigh_dist, torch.FloatTensor([gender])
