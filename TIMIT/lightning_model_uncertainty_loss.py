@@ -35,10 +35,6 @@ class LightningModel(pl.LightningModule):
 
         self.csv_path = HPARAMS['speaker_csv_path']
         self.df = pd.read_csv(self.csv_path)
-        self.h_mean = self.df[self.df['Use'] == 'TRN']['height'].mean()
-        self.h_std = self.df[self.df['Use'] == 'TRN']['height'].std()
-        self.a_mean = self.df[self.df['Use'] == 'TRN']['age'].mean()
-        self.a_std = self.df[self.df['Use'] == 'TRN']['age'].std()
 
         print(f"Model Details: #Params = {self.count_total_parameters()}\t#Trainable Params = {self.count_trainable_parameters()}")
 
@@ -67,7 +63,7 @@ class LightningModel(pl.LightningModule):
 
         loss = self.uncertainty_loss(torch.cat((y_hat_h, y_hat_g)), torch.cat((y_h, y_g)))
 
-        height_mae = self.mae_criterion(y_hat_h*self.h_std+self.h_mean, y_h*self.h_std+self.h_mean)
+        height_mae = self.mae_criterion(y_hat_h, y_h)
         gender_acc = self.accuracy((y_hat_g>0.5).long(), y_g.long())
 
         return {'loss':loss, 
@@ -97,7 +93,7 @@ class LightningModel(pl.LightningModule):
 
         loss = self.uncertainty_loss(torch.cat((y_hat_h, y_hat_g)), torch.cat((y_h, y_g)))
 
-        height_mae = self.mae_criterion(y_hat_h*self.h_std+self.h_mean, y_h*self.h_std+self.h_mean)
+        height_mae = self.mae_criterion(y_hat_h, y_h)
         gender_acc = self.accuracy((y_hat_g>0.5).long(), y_g.long())
 
         return {'val_loss':loss, 
@@ -130,13 +126,13 @@ class LightningModel(pl.LightningModule):
         female_idx = torch.nonzero(idx).view(-1)
         male_idx = torch.nonzero(1-idx).view(-1)
 
-        male_height_mae = self.mae_criterion(y_hat_h[male_idx]*self.h_std+self.h_mean, y_h[male_idx]*self.h_std+self.h_mean)
+        male_height_mae = self.mae_criterion(y_hat_h[male_idx], y_h[male_idx])
 
-        femal_height_mae = self.mae_criterion(y_hat_h[female_idx]*self.h_std+self.h_mean, y_h[female_idx]*self.h_std+self.h_mean)
+        femal_height_mae = self.mae_criterion(y_hat_h[female_idx], y_h[female_idx])
 
-        male_height_rmse = self.rmse_criterion(y_hat_h[male_idx]*self.h_std+self.h_mean, y_h[male_idx]*self.h_std+self.h_mean)
+        male_height_rmse = self.rmse_criterion(y_hat_h[male_idx], y_h[male_idx])
 
-        femal_height_rmse = self.rmse_criterion(y_hat_h[female_idx]*self.h_std+self.h_mean, y_h[female_idx]*self.h_std+self.h_mean)
+        femal_height_rmse = self.rmse_criterion(y_hat_h[female_idx], y_h[female_idx])
 
         return {
                 'male_height_mae':male_height_mae.item(),

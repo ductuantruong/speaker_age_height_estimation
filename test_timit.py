@@ -29,7 +29,6 @@ if __name__ == "__main__":
 
     parser = ArgumentParser(add_help=True)
     parser.add_argument('--data_path', type=str, default=TIMITConfig.data_path)
-    parser.add_argument('--speaker_csv_path', type=str, default=TIMITConfig.speaker_csv_path)
     parser.add_argument('--batch_size', type=int, default=TIMITConfig.batch_size)
     parser.add_argument('--epochs', type=int, default=TIMITConfig.epochs)
     parser.add_argument('--num_layers', type=int, default=TIMITConfig.num_layers)
@@ -70,13 +69,6 @@ if __name__ == "__main__":
         collate_fn = collate_fn,
     )
 
-    csv_path = hparams.speaker_csv_path
-    df = pd.read_csv(csv_path)
-    h_mean = df[df['Use'] == 'TRN']['height'].mean()
-    h_std = df[df['Use'] == 'TRN']['height'].std()
-    a_mean = df[df['Use'] == 'TRN']['age'].mean()
-    a_std = df[df['Use'] == 'TRN']['age'].std()
-
     #Testing the Model
     if hparams.model_checkpoint:
         model = LightningModel.load_from_checkpoint(hparams.model_checkpoint, HPARAMS=vars(hparams))
@@ -99,11 +91,10 @@ if __name__ == "__main__":
             y_hat_h, y_hat_g = model(x, x_len)
             y_hat_h = y_hat_h.to('cpu')
             y_hat_g = y_hat_g.to('cpu')
-            height_pred.append((y_hat_h*h_std+h_mean).item())
+            height_pred.append((y_hat_h).item())
             gender_pred.append(y_hat_g>0.5)
 
-            height_true.append((y_h*h_std+h_mean).item())
-            age_true.append(( y_a*a_std+a_mean).item())
+            height_true.append((y_h).item())
             gender_true.append(y_g[0])
 
         female_idx = np.where(np.array(gender_true) == 1)[0].reshape(-1).tolist()
@@ -111,8 +102,6 @@ if __name__ == "__main__":
 
         height_true = np.array(height_true)
         height_pred = np.array(height_pred)
-        age_true = np.array(age_true)
-        age_pred = np.array(age_pred)
 
         hmae = mean_absolute_error(height_true[male_idx], height_pred[male_idx])
         hrmse = mean_squared_error(height_true[male_idx], height_pred[male_idx], squared=False)

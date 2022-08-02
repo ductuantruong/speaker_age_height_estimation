@@ -52,14 +52,6 @@ class TIMITDataset(Dataset):
         if self.narrow_band:
             wav = self.resampleUp(self.resampleDown(wav))
         
-        h_mean = self.df[self.df['Use'] == 'TRN']['height'].mean()
-        h_std = self.df[self.df['Use'] == 'TRN']['height'].std()
-        a_mean = self.df[self.df['Use'] == 'TRN']['age'].mean()
-        a_std = self.df[self.df['Use'] == 'TRN']['age'].std()
-        
-        height = (height - h_mean)/h_std
-        age = (age - a_mean)/a_std
-        
         probability = 0.5
         if self.is_train and random.random() <= probability:
             mixup_idx = random.randint(0, len(self.files)-1)
@@ -77,9 +69,6 @@ class TIMITDataset(Dataset):
             if self.narrow_band:
                 mixup_wav = self.resampleUp(self.resampleDown(mixup_wav))
 
-            mixup_height = (mixup_height - h_mean)/h_std
-            mixup_age = (mixup_age - a_mean)/a_std
-            
             if(mixup_wav.shape[1] < wav.shape[1]):
                 cnt = (wav.shape[1]+mixup_wav.shape[1]-1)//mixup_wav.shape[1]
                 mixup_wav = mixup_wav.repeat(1,cnt)[:,:wav.shape[1]]
