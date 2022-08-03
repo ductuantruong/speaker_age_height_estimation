@@ -68,14 +68,16 @@ if __name__ == "__main__":
         model = LightningModel.load_from_checkpoint(hparams.model_checkpoint, HPARAMS=vars(hparams))
         model.to(device)
         model.eval()
-        height_pred = []
-        height_true = []
-        age_pred = []
-        age_true = []
-        gender_pred = []
-        gender_true = []
-        list_test_set = ['ENGLISH1', 'ENGLISH2', 'CHINESE1', 'CHINESE2']
+        #list_test_set = ['ENGLISH2', 'CHINESE2']
+        #list_test_set = ['ENGLISH1']
+        list_test_set = ['CHINESE1']
         for test_set in list_test_set:
+            height_pred = []
+            height_true = []
+            age_pred = []
+            age_true = []
+            gender_pred = []
+            gender_true = []
             # Testing Dataset
             test_set = DSODataset(
                 wav_folder = os.path.join(hparams.data_path, test_set),
@@ -126,6 +128,7 @@ if __name__ == "__main__":
             print('Test set {}'.format(test_set))
             print(hrmse, hmae, armse, amae)
 
+            """
             hmae = mean_absolute_error(height_true[female_idx], height_pred[female_idx])
             hrmse = mean_squared_error(height_true[female_idx], height_pred[female_idx], squared=False)
             amae = mean_absolute_error(age_true[female_idx], age_pred[female_idx])
@@ -137,8 +140,11 @@ if __name__ == "__main__":
             amae = mean_absolute_error(age_true, age_pred)
             armse = mean_squared_error(age_true, age_pred, squared=False)
             print(hrmse, hmae, armse, amae)
-            
+            """
+
             gender_pred_ = [int(pred[0][0] == True) for pred in gender_pred]
+            print(gender_pred)
+            print(gender_true)
             print(accuracy_score(gender_true, gender_pred_))
     else:
         print('Model chekpoint not found for Testing !!!')
