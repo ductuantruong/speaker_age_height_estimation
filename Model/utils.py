@@ -20,6 +20,7 @@ class UncertaintyLoss(Module):
         self.loss_gender = None
         self.log_var_height = Parameter(torch.tensor(0, requires_grad=True, dtype=torch.float32, device=device))
         self.log_var_kl_height = Parameter(torch.tensor(0, requires_grad=True, dtype=torch.float32, device=device))
+        self.log_var_variance_height = Parameter(torch.tensor(0, requires_grad=True, dtype=torch.float32, device=device))
         self.log_var_gender = Parameter(torch.tensor(0, requires_grad=True, dtype=torch.float32, device=device))
 
     def forward(self, input, target, input_h_dist, target_h_dist):
@@ -44,29 +45,20 @@ class UncertaintyLoss(Module):
 
         return self.loss_var
 
-class MeanVarianceLoss(nn.Module):
-
-    def __init__(self, lambda_1, lambda_2, start_height, end_height):
+class VarianceLoss(nn.Module):
+    def __init__(self, start_height, end_height):
         super().__init__()
-        self.lambda_1 = lambda_1
-        self.lambda_2 = lambda_2
         self.start_height = start_height
         self.end_height = end_height
 
-    def forward(self, input, target):
-
-        N = input.size()[0]
-        target = target.type(torch.FloatTensor).cuda()
+    def forward(self, input):
         m = nn.Softmax(dim=1)
         p = m(input)
-        # mean loss
         a = torch.arange(self.start_height, self.end_height + 1, dtype=torch.float32).cuda()
         mean = torch.squeeze((p * a).sum(1, keepdim=True), dim=1)
-        mse = (mean - target)**2
-        mean_loss = mse.mean() / 2.0
 
         # variance loss
         b = (a[None, :] - mean[:, None])**2
         variance_loss = (p * b).sum(1, keepdim=True).mean()
         
-        return self.lambda_1 * mean_loss, self.lambda_2 * variance_loss
+        return variance_loss

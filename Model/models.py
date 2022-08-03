@@ -25,7 +25,7 @@ class Wav2vec2BiEncoder(nn.Module):
         self.dropout = nn.Dropout(0.5)
 
         self.height_regressor = nn.Linear(1024, 1)
-        self.height_estimator = nn.Linear(1024, 11)
+        self.height_estimator = nn.Linear(1024, 61)
         self.gender_classifier = nn.Sequential(
             nn.Linear(2*1024, 1),
             nn.Sigmoid()
