@@ -55,11 +55,11 @@ class LightningModel(pl.LightningModule):
         x, y_h, y_a, y_h_dist, y_g, x_len = batch
         y_h = torch.stack(y_h).reshape(-1,)
         y_a = torch.stack(y_a).reshape(-1,)
-        y_h_dist = torch.stack(y_h_dist).reshape(-1,)
+        y_h_dist = torch.stack(y_h_dist)
         y_g = torch.stack(y_g).reshape(-1,)
         
         y_hat_h, y_hat_h_dist, y_hat_g = self(x, x_len)
-        y_h, y_a, y_h_dist, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_h_dist.view(-1).float(), y_g.view(-1).float()
+        y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
         y_hat_h, y_hat_g = y_hat_h.view(-1).float(), y_hat_g.view(-1).float()
 
         loss = self.uncertainty_loss(torch.cat((y_hat_h, y_hat_g)), torch.cat((y_h, y_g)), y_hat_h_dist, y_h_dist)
@@ -86,11 +86,11 @@ class LightningModel(pl.LightningModule):
         x, y_h, y_a, y_h_dist, y_g, x_len = batch
         y_h = torch.stack(y_h).reshape(-1,)
         y_a = torch.stack(y_a).reshape(-1,)
-        y_h_dist = torch.stack(y_h_dist).reshape(-1,)
+        y_h_dist = torch.stack(y_h_dist)
         y_g = torch.stack(y_g).reshape(-1,)
         
         y_hat_h, y_hat_h_dist, y_hat_g = self(x, x_len)
-        y_h, y_a, y_h_dist, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_h_dist.view(-1).float(), y_g.view(-1).float()
+        y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
         y_hat_h, y_hat_g = y_hat_h.view(-1).float(), y_hat_g.view(-1).float()
         loss = self.uncertainty_loss(torch.cat((y_hat_h, y_hat_g)), torch.cat((y_h, y_g)), y_hat_h_dist, y_h_dist)
 

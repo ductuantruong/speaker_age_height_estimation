@@ -22,6 +22,7 @@ class UncertaintyLoss(Module):
         self.log_var_kl_height = Parameter(torch.tensor(0, requires_grad=True, dtype=torch.float32, device=device))
         self.log_var_variance_height = Parameter(torch.tensor(0, requires_grad=True, dtype=torch.float32, device=device))
         self.log_var_gender = Parameter(torch.tensor(0, requires_grad=True, dtype=torch.float32, device=device))
+        self.variance_loss = VarianceLoss(140, 200)
 
     def forward(self, input, target, input_h_dist, target_h_dist):
         pred_arr = torch.split(input, input.shape[0]//2)
@@ -30,18 +31,19 @@ class UncertaintyLoss(Module):
         target_arr = torch.split(target, target.shape[0]//2)
         height_target, gender_target = target_arr
         
-        self.loss_gender = mse_loss(input=gender_pred, target=gender_target)
-        self.loss_gender_var = torch.exp(-self.log_var_gender) * self.loss_gender + self.log_var_gender
+        loss_gender = mse_loss(input=gender_pred, target=gender_target)
+        loss_gender_var = torch.exp(-self.log_var_gender) * loss_gender + self.log_var_gender
         
-        self.loss_height = mse_loss(input=height_pred, target=height_target)
-        self.loss_height_var = torch.exp(-self.log_var_height) * self.loss_height + self.log_var_height
+        loss_height = mse_loss(input=height_pred, target=height_target)
+        loss_height_var = torch.exp(-self.log_var_height) * loss_height + self.log_var_height
 
-        self.kl_loss_height = kl_div(input=input_h_dist, target=target_h_dist)
-        self.kl_loss_height_var = torch.exp(-self.log_var_kl_height) * self.kl_loss_height + self.log_var_kl_height
+        kl_loss_height = kl_div(input=input_h_dist, target=target_h_dist)
+        kl_loss_height_var = torch.exp(-self.log_var_kl_height) * kl_loss_height + self.log_var_kl_height
 
-        self.loss = self.loss_gender + self.loss_height + self.kl_loss_height
+        variance_loss = self.variance_loss(input_h_dist)
+        variance_loss_var = torch.exp(self.log_var_variance_height) * variance_loss + self.log_var_variance_height
         
-        self.loss_var = self.loss_gender_var + self.loss_height_var + self.kl_loss_height_var
+        self.loss_var = loss_gender_var + loss_height_var + kl_loss_height_var + variance_loss_var
 
         return self.loss_var
 

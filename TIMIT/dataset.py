@@ -89,7 +89,7 @@ class TIMITDataset(Dataset):
 
         label_dist_transform = Normal(torch.tensor([round(height)]), torch.tensor([4.0]))
         heigh_dist = self.height_dist
-        start_height = round(height) - 5
+        start_height = max(round(height) - 5, 140)
         end_height = min(round(height) + 5 + 1, 200)
         heigh_dist[(start_height - 140):(end_height - 140)] = torch.exp(label_dist_transform.log_prob(torch.Tensor(list(range(start_height, end_height)))))
         return wav, torch.FloatTensor([height]), torch.FloatTensor([age]), heigh_dist, torch.FloatTensor([gender])
