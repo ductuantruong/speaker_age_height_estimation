@@ -7,7 +7,7 @@ import os
 from DSO.dataset import DSODataset
 from TIMIT.lightning_model_uncertainty_loss import LightningModel
 
-from sklearn.metrics import mean_absolute_error, mean_squared_error, accuracy_score
+from sklearn.metrics import mean_absolute_error, mean_squared_error, accuracy_score, confusion_matrix
 import pytorch_lightning as pl
 
 import torch
@@ -19,16 +19,16 @@ import numpy as np
 
 import torch.nn.utils.rnn as rnn_utils
 def collate_fn(batch):
-    (seq, height, age, gender) = zip(*batch)
+    (seq, height, age, gender, idx) = zip(*batch)
     seql = [x.reshape(-1,) for x in seq]
     seq_length = [x.shape[0] for x in seql]
     data = rnn_utils.pad_sequence(seql, batch_first=True, padding_value=0)
-    return data, height, age, gender, seq_length
+    return data, height, age, gender, seq_length, idx
 
 if __name__ == "__main__":
 
     parser = ArgumentParser(add_help=True)
-    parser.add_argument('--data_path', type=str, default='/home/project/12001458/ductuan0/speaker_age_height_estimation/data/DSO_data')
+    parser.add_argument('--data_path', type=str, default='/home/project/12001458/ductuan0/speaker_age_height_estimation/data/8k_G711_DSO_data')
     parser.add_argument('--speaker_csv_path', type=str, default=TIMITConfig.speaker_csv_path)
     parser.add_argument('--test_speaker_csv_path', type=str, default='/home/project/12001458/ductuan0/speaker_age_height_estimation/DSO/data_info_height_age.csv')
     parser.add_argument('--batch_size', type=int, default=TIMITConfig.batch_size)
@@ -68,9 +68,7 @@ if __name__ == "__main__":
         model = LightningModel.load_from_checkpoint(hparams.model_checkpoint, HPARAMS=vars(hparams))
         model.to(device)
         model.eval()
-        #list_test_set = ['ENGLISH2', 'CHINESE2']
-        #list_test_set = ['ENGLISH1']
-        list_test_set = ['CHINESE1']
+        list_test_set = ['ENGLISH', 'CHINESE']
         for test_set in list_test_set:
             height_pred = []
             height_true = []
@@ -78,10 +76,11 @@ if __name__ == "__main__":
             age_true = []
             gender_pred = []
             gender_true = []
+            list_idx = []
             # Testing Dataset
             test_set = DSODataset(
                 wav_folder = os.path.join(hparams.data_path, test_set),
-                language = test_set[:-1].capitalize(),
+                language = test_set.capitalize(),
                 hparams = hparams
             )
 
@@ -95,7 +94,7 @@ if __name__ == "__main__":
             )
 
             for batch in tqdm(testloader):
-                x, y_h, y_a, y_g, x_len = batch
+                x, y_h, y_a, y_g, x_len, idx = batch
                 x = x.to(device)
                 y_h = torch.stack(y_h).reshape(-1,)
                 y_a = torch.stack(y_a).reshape(-1,)
@@ -112,6 +111,7 @@ if __name__ == "__main__":
                 height_true.append((y_h*h_std+h_mean).item())
                 age_true.append(( y_a*a_std+a_mean).item())
                 gender_true.append(y_g[0])
+                list_idx.append(idx)
 
             female_idx = np.where(np.array(gender_true) == 1)[0].reshape(-1).tolist()
             male_idx = np.where(np.array(gender_true) == 0)[0].reshape(-1).tolist()
@@ -128,7 +128,6 @@ if __name__ == "__main__":
             print('Test set {}'.format(test_set))
             print(hrmse, hmae, armse, amae)
 
-            """
             hmae = mean_absolute_error(height_true[female_idx], height_pred[female_idx])
             hrmse = mean_squared_error(height_true[female_idx], height_pred[female_idx], squared=False)
             amae = mean_absolute_error(age_true[female_idx], age_pred[female_idx])
@@ -140,11 +139,15 @@ if __name__ == "__main__":
             amae = mean_absolute_error(age_true, age_pred)
             armse = mean_squared_error(age_true, age_pred, squared=False)
             print(hrmse, hmae, armse, amae)
-            """
 
             gender_pred_ = [int(pred[0][0] == True) for pred in gender_pred]
-            print(gender_pred)
-            print(gender_true)
+            #print(gender_pred)
+            #print(gender_true)
             print(accuracy_score(gender_true, gender_pred_))
+            print(confusion_matrix(gender_true, gender_pred_))
+            #for i in range(len(gender_pred_)):
+            #    if gender_pred_[i] != gender_true[i].item():
+            #        print(list_idx[i], gender_pred_[i], gender_true[i].item())
+
     else:
         print('Model chekpoint not found for Testing !!!')

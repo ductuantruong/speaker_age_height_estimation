@@ -14,13 +14,13 @@ class DSODataset(Dataset):
     language,
     hparams,
     ):
+        self.language = language
         self.wav_folder = wav_folder
         self.files = os.listdir(self.wav_folder)
         self.csv_file = hparams.speaker_csv_path
         self.test_csv_file = hparams.test_speaker_csv_path
         self.df = pd.read_csv(self.test_csv_file, index_col='ID')
         self.train_df = pd.read_csv(self.csv_file)
-        self.language = language
 
         self.speaker_list = self.df.index.values.tolist()
         self.gender_dict = {'M' : 0.0, 'F' : 1.0}
@@ -54,4 +54,4 @@ class DSODataset(Dataset):
         height = (height - h_mean)/h_std
         age = (age - a_mean)/a_std
         
-        return wav, torch.FloatTensor([height]), torch.FloatTensor([age]), torch.FloatTensor([gender])
+        return wav, torch.FloatTensor([height]), torch.FloatTensor([age]), torch.FloatTensor([gender]), file
