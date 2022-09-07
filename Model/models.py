@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 class Wav2vec2BiEncoder(nn.Module):
-    def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768):
+    def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768): # change upstream_model to wavlm_base_plus to run WavLMBase+
         super().__init__()
         self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
         self.n_upstream_encoder = len(self.upstream.model.encoder.layers)
@@ -13,7 +13,6 @@ class Wav2vec2BiEncoder(nn.Module):
         for param in self.upstream.model.feature_extractor.conv_layers[:5].parameters():
             param.requires_grad = False
 
-        #self.encoder_weights = nn.ParameterList([nn.Parameter(torch.randn(1)) for i in range(self.n_upstream_encoder)])
         self.encoder_weights = nn.Linear(self.n_upstream_encoder, 1)
                 
         encoder_layer_M = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
@@ -36,6 +35,7 @@ class Wav2vec2BiEncoder(nn.Module):
 
     def forward(self, x, x_len):
         x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
+        # Need while loop because s3prl sometimes loose the hook of some hidden states, hence need to rerun the extraction
         while True:
             hidden_states = self.upstream(x)['hidden_states']
             if len(hidden_states) == self.n_upstream_encoder + 1:
@@ -43,20 +43,7 @@ class Wav2vec2BiEncoder(nn.Module):
                 break
             else:
                 pass
-        """
-        for i in range(self.n_upstream_encoder):
-            while True:
-                try:
-                    hidden_state = hidden_states['hidden_state_{}'.format(i)]
-                    combined_feature += hidden_state * self.encoder_weights[i]
-                    break
-                except Exception as e:
-                    hidden_states.clear()
-                    hidden_states = self.upstream(x)
-                    pass
-        x = combined_feature
-        """
-        x = self.encoder_weights(torch.stack(hidden_states, dim=-1)).squeeze(-1)
+        x = self.encoder_weights(torch.stack(hidden_states, dim=-1)).squeeze(-1) # feature extraction step stop here
         xM = self.transformer_encoder_M(x)
         xF = self.transformer_encoder_F(x)
         xM = self.dropout(torch.cat((torch.mean(xM, dim=1), torch.std(xM, dim=1)), dim=1))
