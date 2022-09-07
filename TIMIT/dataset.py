@@ -1,3 +1,5 @@
+from audioop import avg
+from random import weibullvariate
 from torch.utils.data import Dataset
 import os
 import pandas as pd
@@ -5,8 +7,7 @@ import torch
 import numpy as np
 
 import torchaudio
-import wavencoder
-import random
+from denseweight import DenseWeight
 
 class TIMITDataset(Dataset):
     def __init__(self,
@@ -29,6 +30,18 @@ class TIMITDataset(Dataset):
         if self.narrow_band:
             self.resampleDown = torchaudio.transforms.Resample(orig_freq=16000, new_freq=8000)
             self.resampleUp = torchaudio.transforms.Resample(orig_freq=8000, new_freq=16000) 
+
+        self.h_mean = self.df[self.df['Use'] == 'TRN']['height'].mean()
+        self.h_std = self.df[self.df['Use'] == 'TRN']['height'].std()
+        self.a_mean = self.df[self.df['Use'] == 'TRN']['age'].mean()
+        self.a_std = self.df[self.df['Use'] == 'TRN']['age'].std()
+
+        self.df['norm_height'] = (self.df['height'] - self.h_mean)/self.h_std
+        self.df['norm_age'] = (self.df['age'] - self.a_mean)/self.a_std
+        
+        dw = DenseWeight(alpha=1.0)
+        self.df['age_weight'] = dw.fit(self.df['norm_age'].to_numpy())
+        self.df['height_weight'] = dw.fit(self.df['norm_height'].to_numpy())
         
     def __len__(self):
         return len(self.files)
@@ -41,9 +54,11 @@ class TIMITDataset(Dataset):
         id = file.split('_')[0][1:]
         g_id = file.split('_')[0]
         gender = self.gender_dict[self.df.loc[id, 'Sex']]
-        height = self.df.loc[id, 'height']
-        age =  self.df.loc[id, 'age']
-        
+        height = self.df.loc[id, 'norm_height']
+        age =  self.df.loc[id, 'norm_age']
+        age_weight = self.df.loc[id, 'age_weight']
+        height_weight = self.df.loc[id, 'height_weight']
+        weight = (age_weight + height_weight) / 2
         wav, _ = torchaudio.load(os.path.join(self.wav_folder, file))
         
         if(wav.shape[0] != 1):
@@ -52,12 +67,4 @@ class TIMITDataset(Dataset):
         if self.narrow_band:
             wav = self.resampleUp(self.resampleDown(wav))
         
-        h_mean = self.df[self.df['Use'] == 'TRN']['height'].mean()
-        h_std = self.df[self.df['Use'] == 'TRN']['height'].std()
-        a_mean = self.df[self.df['Use'] == 'TRN']['age'].mean()
-        a_std = self.df[self.df['Use'] == 'TRN']['age'].std()
-        
-        height = (height - h_mean)/h_std
-        age = (age - a_mean)/a_std
-            
-        return wav, torch.FloatTensor([height]), torch.FloatTensor([age]), torch.FloatTensor([gender])
+        return wav, torch.FloatTensor([height]), torch.FloatTensor([age]), torch.FloatTensor([gender]), torch.FloatTensor([weight])
