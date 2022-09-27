@@ -21,8 +21,11 @@ class TIMITDataset(Dataset):
         self.is_train = is_train
 
         self.speaker_list = self.df.loc[:, 'ID'].values.tolist()
-        self.df.set_index('ID', inplace=True)
+        #self.df.set_index('ID', inplace=True)
         self.gender_dict = {'M' : 0.0, 'F' : 1.0}
+        self.transform = wavencoder.transforms.Compose([
+            wavencoder.transforms.PadCrop(pad_crop_length=8*16000, pad_position='left', crop_position='center')
+        ])
         
         self.narrow_band = hparams.narrow_band
         
@@ -38,11 +41,14 @@ class TIMITDataset(Dataset):
             idx = idx.tolist()
         
         file = self.files[idx]
-        id = file.split('_')[0][1:]
+        if file.startswith('common'):
+            id = self.df.loc[self.df['path'] == file, 'ID'].iloc[0]
+        else:
+            id = file.split('_')[0][1:]
         g_id = file.split('_')[0]
-        gender = self.gender_dict[self.df.loc[id, 'Sex']]
-        height = self.df.loc[id, 'height']
-        age =  self.df.loc[id, 'age']
+        gender = self.gender_dict[self.df.loc[self.df['ID'] == id, 'Sex'].iloc[0]]
+        age =  self.df.loc[self.df['ID'] == id, 'age'].iloc[0]
+        speaker_id = id
         
         wav, _ = torchaudio.load(os.path.join(self.wav_folder, file))
         
@@ -52,22 +58,24 @@ class TIMITDataset(Dataset):
         if self.narrow_band:
             wav = self.resampleUp(self.resampleDown(wav))
         
-        h_mean = self.df[self.df['Use'] == 'TRN']['height'].mean()
-        h_std = self.df[self.df['Use'] == 'TRN']['height'].std()
+        if self.is_train and wav.shape[1] > 8 * 16000:
+            wav = self.transform(wav)
+        
         a_mean = self.df[self.df['Use'] == 'TRN']['age'].mean()
         a_std = self.df[self.df['Use'] == 'TRN']['age'].std()
         
-        height = (height - h_mean)/h_std
         age = (age - a_mean)/a_std
         
         probability = 0.5
         if self.is_train and random.random() <= probability:
             mixup_idx = random.randint(0, len(self.files)-1)
             mixup_file = self.files[mixup_idx]
-            mixup_id = mixup_file.split('_')[0][1:]
-            mixup_gender = self.gender_dict[self.df.loc[mixup_id, 'Sex']]
-            mixup_height = self.df.loc[mixup_id, 'height']
-            mixup_age =  self.df.loc[mixup_id, 'age']
+            if mixup_file.startswith('common'):
+                mixup_id = self.df.loc[self.df['path'] == mixup_file, 'ID'].iloc[0]
+            else:
+                mixup_id = mixup_file.split('_')[0][1:]
+            mixup_gender = self.gender_dict[self.df.loc[self.df['ID'] == mixup_id, 'Sex'].iloc[0]]
+            mixup_age =  self.df.loc[self.df['ID'] == mixup_id, 'age'].iloc[0]
 
             mixup_wav, _ = torchaudio.load(os.path.join(self.wav_folder, mixup_file))
 
@@ -77,7 +85,7 @@ class TIMITDataset(Dataset):
             if self.narrow_band:
                 mixup_wav = self.resampleUp(self.resampleDown(mixup_wav))
 
-            mixup_height = (mixup_height - h_mean)/h_std
+            mixup_wav = self.transform(mixup_wav)
             mixup_age = (mixup_age - a_mean)/a_std
             
             if(mixup_wav.shape[1] < wav.shape[1]):
@@ -92,8 +100,10 @@ class TIMITDataset(Dataset):
             lam = np.random.beta(alpha, alpha)
             
             wav = lam*wav + (1-lam)*mixup_wav
-            height = lam*height + (1-lam)*mixup_height
             age = lam*age + (1-lam)*mixup_age
             gender = lam*gender + (1-lam)*mixup_gender
-            
-        return wav, torch.FloatTensor([height]), torch.FloatTensor([age]), torch.FloatTensor([gender])
+
+        if 'test' not in self.wav_folder.lower():
+            return wav, torch.FloatTensor([age]), torch.FloatTensor([gender])
+        else:
+            return wav, torch.FloatTensor([age]), torch.FloatTensor([gender]), speaker_id

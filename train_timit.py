@@ -33,11 +33,11 @@ from TIMIT.lightning_model_uncertainty_loss import LightningModel
 
 import torch.nn.utils.rnn as rnn_utils
 def collate_fn(batch):
-    (seq, height, age, gender) = zip(*batch)
+    (seq, age, gender) = zip(*batch)
     seql = [x.reshape(-1,) for x in seq]
     seq_length = [x.shape[0] for x in seql]
     data = rnn_utils.pad_sequence(seql, batch_first=True, padding_value=0)
-    return data, height, age, gender, seq_length
+    return data, age, gender, seq_length
 
 if __name__ == "__main__":
 
@@ -70,7 +70,7 @@ if __name__ == "__main__":
     # Training, Validation and Testing Dataset
     ## Training Dataset
     train_set = TIMITDataset(
-        wav_folder = os.path.join(hparams.data_path, 'TRAIN'),
+        wav_folder = os.path.join(hparams.data_path, 'TRAIN_MIX'),
         hparams = hparams
     )
     ## Training DataLoader
@@ -124,7 +124,7 @@ if __name__ == "__main__":
 
     model_checkpoint_callback = ModelCheckpoint(
         dirpath='checkpoints/{}'.format(hparams.run_name),
-        monitor='val/loss', 
+        monitor='val/a', 
         mode='min',
         verbose=1)
 
@@ -135,7 +135,7 @@ if __name__ == "__main__":
         checkpoint_callback=True,
         callbacks=[
             EarlyStopping(
-                monitor='val/loss',
+                monitor='val/a',
                 min_delta=0.00,
                 patience=10,
                 verbose=True,
