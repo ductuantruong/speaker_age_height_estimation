@@ -70,7 +70,8 @@ if __name__ == "__main__":
     # Training, Validation and Testing Dataset
     ## Training Dataset
     train_set = TIMITDataset(
-        wav_folder = os.path.join(hparams.data_path, 'TRAIN_MIX'),
+        #wav_folder = os.path.join(hparams.data_path, 'TRAIN_MIX'),
+        wav_folder = os.path.join(hparams.data_path, 'TRAIN'),
         hparams = hparams
     )
     ## Training DataLoader

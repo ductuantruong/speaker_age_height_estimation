@@ -23,10 +23,11 @@ class TIMITDataset(Dataset):
         self.speaker_list = self.df.loc[:, 'ID'].values.tolist()
         #self.df.set_index('ID', inplace=True)
         self.gender_dict = {'M' : 0.0, 'F' : 1.0}
+        """
         self.transform = wavencoder.transforms.Compose([
             wavencoder.transforms.PadCrop(pad_crop_length=8*16000, pad_position='left', crop_position='center')
         ])
-        
+        """
         self.narrow_band = hparams.narrow_band
         
         if self.narrow_band:
@@ -58,8 +59,8 @@ class TIMITDataset(Dataset):
         if self.narrow_band:
             wav = self.resampleUp(self.resampleDown(wav))
         
-        if self.is_train and wav.shape[1] > 8 * 16000:
-            wav = self.transform(wav)
+        #if self.is_train and wav.shape[1] > 8 * 16000:
+        #    wav = self.transform(wav)
         
         a_mean = self.df[self.df['Use'] == 'TRN']['age'].mean()
         a_std = self.df[self.df['Use'] == 'TRN']['age'].std()
@@ -85,7 +86,7 @@ class TIMITDataset(Dataset):
             if self.narrow_band:
                 mixup_wav = self.resampleUp(self.resampleDown(mixup_wav))
 
-            mixup_wav = self.transform(mixup_wav)
+            #mixup_wav = self.transform(mixup_wav)
             mixup_age = (mixup_age - a_mean)/a_std
             
             if(mixup_wav.shape[1] < wav.shape[1]):
