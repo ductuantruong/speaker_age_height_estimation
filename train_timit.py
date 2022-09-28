@@ -56,6 +56,7 @@ if __name__ == "__main__":
     parser.add_argument('--model_type', type=str, default=TIMITConfig.model_type)
     parser.add_argument('--upstream_model', type=str, default=TIMITConfig.upstream_model)
     parser.add_argument('--narrow_band', type=str, default=TIMITConfig.narrow_band)
+    parser.add_argument('--run_name', type=str, default=TIMITConfig.run_name)
     
     parser = pl.Trainer.add_argparse_args(parser)
     hparams = parser.parse_args()
@@ -114,7 +115,7 @@ if __name__ == "__main__":
     print('Dataset Split (Train, Validation, Test)=', len(train_set), len(valid_set), len(test_set))
 
     logger = WandbLogger(
-        name=TIMITConfig.run_name,
+        name=hparams.run_name,
         project='SpeakerProfiling',
         offline=True
     )
@@ -122,7 +123,7 @@ if __name__ == "__main__":
     model = LightningModel(vars(hparams))
 
     model_checkpoint_callback = ModelCheckpoint(
-        dirpath='checkpoints',
+        dirpath='checkpoints/{}'.format(hparams.run_name),
         monitor='val/loss', 
         mode='min',
         verbose=1)
