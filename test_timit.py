@@ -72,8 +72,6 @@ if __name__ == "__main__":
 
     csv_path = hparams.speaker_csv_path
     df = pd.read_csv(csv_path)
-    a_mean = df[df['Use'] == 'TRN']['age'].mean()
-    a_std = df[df['Use'] == 'TRN']['age'].std()
 
     list_speaker_id = df[df['Use'] == 'TST']['ID'].tolist()
 
@@ -108,21 +106,21 @@ if __name__ == "__main__":
             y_hat_a, y_hat_g = model(x, x_len)
             y_hat_a = y_hat_a.to('cpu')
             y_hat_g = y_hat_g.to('cpu')
-            unnormalize_age_pred = (y_hat_a*a_std+a_mean).item()
-            age_pred.append((y_hat_a*a_std+a_mean).item())
+            unnormalize_age_pred = (y_hat_a).item()
+            age_pred.append((y_hat_a).item())
             gender_pred.append(y_hat_g>0.5)
 
             for i, speaker_id in enumerate(batch_speaker_id):
                 speaker_age_pred_dict[speaker_id].append(unnormalize_age_pred)
 
 
-            age_true.append(( y_a*a_std+a_mean).item())
+            age_true.append((y_a).item())
             gender_true.append(y_g[0])
 
         for speaker_id in list_speaker_id:
             speaker_age_pred_dict[speaker_id] = sum(speaker_age_pred_dict[speaker_id])/len(speaker_age_pred_dict[speaker_id])
             df.loc[df['ID'] == speaker_id, 'age_prediction'] = round(speaker_age_pred_dict[speaker_id], 2)
-        df.to_csv('baseline_err_distr.csv')
+        df.to_csv('baseline_cv_err_distr.csv')
         
         female_idx = np.where(np.array(gender_true) == 1)[0].reshape(-1).tolist()
         male_idx = np.where(np.array(gender_true) == 0)[0].reshape(-1).tolist()

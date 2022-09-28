@@ -61,48 +61,6 @@ class TIMITDataset(Dataset):
         if self.is_train and wav.shape[1] > 8 * 16000:
             wav = self.transform(wav)
         
-        a_mean = self.df[self.df['Use'] == 'TRN']['age'].mean()
-        a_std = self.df[self.df['Use'] == 'TRN']['age'].std()
-        
-        age = (age - a_mean)/a_std
-        
-        probability = 0.5
-        if self.is_train and random.random() <= probability:
-            mixup_idx = random.randint(0, len(self.files)-1)
-            mixup_file = self.files[mixup_idx]
-            if mixup_file.startswith('common'):
-                mixup_id = self.df.loc[self.df['path'] == mixup_file, 'ID'].iloc[0]
-            else:
-                mixup_id = mixup_file.split('_')[0][1:]
-            mixup_gender = self.gender_dict[self.df.loc[self.df['ID'] == mixup_id, 'Sex'].iloc[0]]
-            mixup_age =  self.df.loc[self.df['ID'] == mixup_id, 'age'].iloc[0]
-
-            mixup_wav, _ = torchaudio.load(os.path.join(self.wav_folder, mixup_file))
-
-            if(mixup_wav.shape[0] != 1):
-                mixup_wav = torch.mean(mixup_wav, dim=0) 
-            
-            if self.narrow_band:
-                mixup_wav = self.resampleUp(self.resampleDown(mixup_wav))
-
-            mixup_wav = self.transform(mixup_wav)
-            mixup_age = (mixup_age - a_mean)/a_std
-            
-            if(mixup_wav.shape[1] < wav.shape[1]):
-                cnt = (wav.shape[1]+mixup_wav.shape[1]-1)//mixup_wav.shape[1]
-                mixup_wav = mixup_wav.repeat(1,cnt)[:,:wav.shape[1]]
-            
-            if(wav.shape[1] < mixup_wav.shape[1]):
-                cnt = (mixup_wav.shape[1]+wav.shape[1]-1)//wav.shape[1]
-                wav = wav.repeat(1,cnt)[:,:mixup_wav.shape[1]]
-            
-            alpha = 1
-            lam = np.random.beta(alpha, alpha)
-            
-            wav = lam*wav + (1-lam)*mixup_wav
-            age = lam*age + (1-lam)*mixup_age
-            gender = lam*gender + (1-lam)*mixup_gender
-
         if 'test' not in self.wav_folder.lower():
             return wav, torch.FloatTensor([age]), torch.FloatTensor([gender])
         else:

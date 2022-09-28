@@ -35,8 +35,6 @@ class LightningModel(pl.LightningModule):
 
         self.csv_path = HPARAMS['speaker_csv_path']
         self.df = pd.read_csv(self.csv_path)
-        self.a_mean = self.df[self.df['Use'] == 'TRN']['age'].mean()
-        self.a_std = self.df[self.df['Use'] == 'TRN']['age'].std()
 
         print(f"Model Details: #Params = {self.count_total_parameters()}\t#Trainable Params = {self.count_trainable_parameters()}")
 
@@ -64,7 +62,7 @@ class LightningModel(pl.LightningModule):
 
         loss = self.uncertainty_loss(torch.cat((y_hat_a, y_hat_g)), torch.cat((y_a, y_g)))
 
-        age_mae =self.mae_criterion(y_hat_a*self.a_std+self.a_mean, y_a*self.a_std+self.a_mean)
+        age_mae =self.mae_criterion(y_hat_a, y_a)
         gender_acc = self.accuracy((y_hat_g>0.5).long(), y_g.long())
 
         return {'loss':loss, 
@@ -93,7 +91,7 @@ class LightningModel(pl.LightningModule):
 
         loss = self.uncertainty_loss(torch.cat((y_hat_a, y_hat_g)), torch.cat((y_a, y_g)))
 
-        age_mae = self.mae_criterion(y_hat_a*self.a_std+self.a_mean, y_a*self.a_std+self.a_mean)
+        age_mae = self.mae_criterion(y_hat_a, y_a)
         gender_acc = self.accuracy((y_hat_g>0.5).long(), y_g.long())
 
         return {'val_loss':loss, 
@@ -125,11 +123,11 @@ class LightningModel(pl.LightningModule):
         female_idx = torch.nonzero(idx).view(-1)
         male_idx = torch.nonzero(1-idx).view(-1)
 
-        male_age_mae = self.mae_criterion(y_hat_a[male_idx]*self.a_std+self.a_mean, y_a[male_idx]*self.a_std+self.a_mean)
-        female_age_mae = self.mae_criterion(y_hat_a[female_idx]*self.a_std+self.a_mean, y_a[female_idx]*self.a_std+self.a_mean)
+        male_age_mae = self.mae_criterion(y_hat_a[male_idx], y_a[male_idx])
+        female_age_mae = self.mae_criterion(y_hat_a[female_idx], y_a[female_idx])
 
-        male_age_rmse = self.rmse_criterion(y_hat_a[male_idx]*self.a_std+self.a_mean, y_a[male_idx]*self.a_std+self.a_mean)
-        female_age_rmse = self.rmse_criterion(y_hat_a[female_idx]*self.a_std+self.a_mean, y_a[female_idx]*self.a_std+self.a_mean)
+        male_age_rmse = self.rmse_criterion(y_hat_a[male_idx], y_a[male_idx])
+        female_age_rmse = self.rmse_criterion(y_hat_a[female_idx], y_a[female_idx])
 
         return {
                 'male_age_mae':male_age_mae.item(),
