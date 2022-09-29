@@ -26,7 +26,7 @@ class LightningModel(pl.LightningModule):
         self.model = self.models[HPARAMS['model_type']](upstream_model=HPARAMS['upstream_model'], num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'])
             
         self.classification_criterion = nn.CrossEntropyLoss()
-        self.bce_criterion = MSE()
+        self.bce_criterion = nn.BCELoss()
         self.regression_criterion = MSE()
         self.mae_criterion = MAE()
         self.rmse_criterion = RMSELoss()
