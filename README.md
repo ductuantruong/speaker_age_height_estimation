@@ -48,7 +48,11 @@ python test_timit.py --data_path=/notebooks/SpeakerProfiling/TIMIT_Dataset/wav_d
 ```
 
 ### Pretrained Model
-We have uploaded a pretrained model of our experiments. You can download the from [Dropbox](https://www.dropbox.com/s/e9juyocxgigvekl/epoch%3D24-step%3D12249.ckpt?dl=0).
+We have uploaded a pretrained model of our experiments. 
+
+* You can download pretrained model using wav2vec2.0Base from [Dropbox](https://www.dropbox.com/s/e9juyocxgigvekl/epoch%3D24-step%3D12249.ckpt?dl=0).
+
+* You can download pretrained model using WavLMBase+ from [OneDrive](https://entuedu-my.sharepoint.com/:u:/g/personal/ductuan001_e_ntu_edu_sg/EflWN1guTitDmSbz76B0xtwBIu9TeWPtEwn1SBj1HrWtxA?e=SJd71i). To use WavLMBase+ as upstream model, change the argument `--upstream_model` to `wavlm`
 
 Download it and put it into the model_checkpoint folder.
 
