@@ -20,6 +20,7 @@ class TIMITDataset(Dataset):
         self.csv_file = hparams.speaker_csv_path
         self.df = pd.read_csv(self.csv_file)
         self.is_train = is_train
+        self.model_task = hparams.model_task
 
         self.speaker_list = self.df.loc[:, 'ID'].values.tolist()
         self.df.set_index('ID', inplace=True)
@@ -58,7 +59,14 @@ class TIMITDataset(Dataset):
         age =  self.df.loc[id, 'norm_age']
         age_weight = self.df.loc[id, 'age_weight']
         height_weight = self.df.loc[id, 'height_weight']
-        weight = (age_weight + height_weight) / 2
+
+        if self.model_task == 'ahg':
+            weight = (age_weight + height_weight) / 2
+        elif self.model_task == 'a':
+            weight = age_weight
+        else:
+            weight = height_weight
+
         wav, _ = torchaudio.load(os.path.join(self.wav_folder, file))
         
         if(wav.shape[0] != 1):

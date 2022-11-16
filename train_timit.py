@@ -29,7 +29,7 @@ def seed_torch(seed=100):
 seed_torch()
 
 from TIMIT.dataset import TIMITDataset
-from TIMIT.lightning_model_uncertainty_loss import LightningModel
+from TIMIT.lightning_model_uncertainty_loss import LightningModel, LightningModelAge, LightningModelHeight
 
 import torch.nn.utils.rnn as rnn_utils
 def collate_fn(batch):
@@ -53,10 +53,11 @@ if __name__ == "__main__":
     parser.add_argument('--n_workers', type=int, default=TIMITConfig.n_workers)
     parser.add_argument('--dev', type=str, default=False)
     parser.add_argument('--model_checkpoint', type=str, default=TIMITConfig.model_checkpoint)
-    parser.add_argument('--run_name', type=str, default=TIMITConfig.run_name)
+    parser.add_argument('--run_name', type=str, default='denseloss_w2v2_')
     parser.add_argument('--model_type', type=str, default=TIMITConfig.model_type)
     parser.add_argument('--upstream_model', type=str, default=TIMITConfig.upstream_model)
     parser.add_argument('--narrow_band', type=str, default=TIMITConfig.narrow_band)
+    parser.add_argument('--model_task', type=str, default='h')
     
     parser = pl.Trainer.add_argparse_args(parser)
     hparams = parser.parse_args()
@@ -119,11 +120,15 @@ if __name__ == "__main__":
         offline=True,
         project='SpeakerProfiling'
     )
-
-    model = LightningModel(vars(hparams))
+    if hparams.model_task == 'h':
+        model = LightningModelHeight(vars(hparams))
+    elif hparams.model_task == 'a':
+        model = LightningModelAge(vars(hparams))
+    else:
+        model = LightningModel(vars(hparams))
 
     model_checkpoint_callback = ModelCheckpoint(
-        dirpath='checkpoints/{}'.format(hparams.run_name),
+        dirpath='checkpoints/{}'.format(hparams.run_name + hparams.model_task),
         monitor='val/loss', 
         mode='min',
         verbose=1)

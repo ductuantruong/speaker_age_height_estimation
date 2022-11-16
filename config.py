@@ -46,4 +46,4 @@ class TIMITConfig(object):
     
     narrow_band = config['model_parameters']['narrow_band']
 
-    run_name = 'multi-task' + '_' + model_type
+    run_name = 'denseloss' + '_' + model_type
