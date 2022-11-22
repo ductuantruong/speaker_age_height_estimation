@@ -53,6 +53,7 @@ class TIMITDataset(Dataset):
         
         file = self.files[idx]
         id = file.split('_')[0][1:]
+        speaker_id = id
         g_id = file.split('_')[0]
         gender = self.gender_dict[self.df.loc[id, 'Sex']]
         height = self.df.loc[id, 'norm_height']
@@ -74,5 +75,7 @@ class TIMITDataset(Dataset):
             
         if self.narrow_band:
             wav = self.resampleUp(self.resampleDown(wav))
-        
-        return wav, torch.FloatTensor([height]), torch.FloatTensor([age]), torch.FloatTensor([gender]), torch.FloatTensor([weight])
+        if 'test' not in self.wav_folder.lower(): 
+            return wav, torch.FloatTensor([height]), torch.FloatTensor([age]), torch.FloatTensor([gender]), torch.FloatTensor([weight])
+        else:
+            return wav, torch.FloatTensor([height]), torch.FloatTensor([age]), torch.FloatTensor([gender]), speaker_id
