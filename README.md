@@ -25,7 +25,9 @@ python TIMIT/prepare_timit_data.py --path='path to timit data folder'
 ```
 
 ### Update Config and Logger
-Update the config.json file to update the upstream model, batch_size, gpus, lr, etc and change the preferred logger in train_.py files. Create a folder 'checkpoints' to save the best models. If you wish to perform narrow band experiment, just set narrow_band as true in config.json file.
+Update the config.json file to update the upstream model, batch_size, gpus, lr, etc and change the preferred logger in train_.py files. Create a folder 'checkpoints' to save the best models. If you wish to perform narrow band experiment, just set narrow_band as true in config.json file. For DenseLoss experiment, there are some special arguments. For example:
+* `--model_task='a'` for downstream task of age and gender estimation; `--model_task='h'` for downstream task of height and gender estimation; default `--model_task` for downstream task of height, age and gender estimation
+* `--upstream_model=wav2vec2` for upstream model of wav2vec2; `--upstream_model=wavlm` for upstream model of WavLMBase+;
 
 ### Training
 ```bash
@@ -48,7 +50,7 @@ python test_timit.py --data_path=/notebooks/SpeakerProfiling/TIMIT_Dataset/wav_d
 ```
 
 ### Pretrained Model
-We have uploaded a pretrained model of our experiments. You can download the from [Dropbox](https://www.dropbox.com/s/e9juyocxgigvekl/epoch%3D24-step%3D12249.ckpt?dl=0).
+We have uploaded a pretrained model of our experiments. You can download the from [OneDrive](https://entuedu-my.sharepoint.com/:f:/g/personal/ductuan001_e_ntu_edu_sg/EtOAqMxQgP9Mpguu_YbZUrIBWTdN04RAdn8jkV3dk7o9Hg?e=U0q94O).
 
 Download it and put it into the model_checkpoint folder.
 

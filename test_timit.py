@@ -41,7 +41,7 @@ if __name__ == "__main__":
     parser.add_argument('--upstream_model', type=str, default=TIMITConfig.upstream_model)
     parser.add_argument('--model_type', type=str, default=TIMITConfig.model_type)
     parser.add_argument('--narrow_band', type=str, default=TIMITConfig.narrow_band)
-    parser.add_argument('--model_task', type=str, default='h')
+    parser.add_argument('--model_task', type=str, default='ah')
     
     parser = pl.Trainer.add_argparse_args(parser)
     hparams = parser.parse_args()
@@ -81,7 +81,12 @@ if __name__ == "__main__":
     list_speaker_id = df[df['Use'] == 'TST'].index.values.tolist()
     #Testing the Model
     if hparams.model_checkpoint:
-        model = LightningModelAge.load_from_checkpoint(hparams.model_checkpoint, HPARAMS=vars(hparams))
+        if hparams.model_task == 'h':
+            model = LightningModelHeight.load_from_checkpoint(hparams.model_checkpoint, HPARAMS=vars(hparams))
+        elif hparams.model_task == 'a':
+            model = LightningModelAge.load_from_checkpoint(hparams.model_checkpoint, HPARAMS=vars(hparams))
+        else:
+            model = LightningModel.load_from_checkpoint(hparams.model_checkpoint, HPARAMS=vars(hparams))
         model.to(device)
         model.eval()
         height_pred = []
@@ -109,70 +114,112 @@ if __name__ == "__main__":
                 if speaker_id not in list_speaker_id:
                     list_speaker_id.append(speaker_id) 
             
-            #y_hat_h, y_hat_g = model(x, x_len)
-            y_hat_a, y_hat_g = model(x, x_len)
-
-            #y_hat_h = y_hat_h.to('cpu')
-            y_hat_a = y_hat_a.to('cpu')
+            if hparams.model_task == 'h':
+                y_hat_h, y_hat_g = model(x, x_len)
+                y_hat_h = y_hat_h.to('cpu')
+                unnormalize_height_pred = (y_hat_h*h_std+h_mean).item()
+                height_pred.append(unnormalize_height_pred)
+            elif hparams.model_task == 'a':
+                y_hat_a, y_hat_g = model(x, x_len)
+                y_hat_a = y_hat_a.to('cpu')
+                unnormalize_age_pred = (y_hat_a*a_std+a_mean).item()
+                age_pred.append(unnormalize_age_pred)
+            else:
+                y_hat_h, y_hat_a, y_hat_g = model(x, x_len)
+                y_hat_h = y_hat_h.to('cpu')
+                y_hat_a = y_hat_a.to('cpu')
+                unnormalize_height_pred = (y_hat_h*h_std+h_mean).item()
+                height_pred.append(unnormalize_height_pred)
+                unnormalize_age_pred = (y_hat_a*a_std+a_mean).item()
+                age_pred.append(unnormalize_age_pred)
 
             y_hat_g = y_hat_g.to('cpu')
             
-            #unnormalize_height_pred = (y_hat_h*h_std+h_mean).item()
-            #height_pred.append(unnormalize_height_pred)
-
-            unnormalize_age_pred = (y_hat_a*a_std+a_mean).item()
-            age_pred.append(unnormalize_age_pred)
-
             gender_pred.append(y_hat_g>0.5)
 
             for i, speaker_id in enumerate(batch_speaker_id):
-                speaker_age_pred_dict[speaker_id].append(unnormalize_age_pred)
-                #speaker_height_pred_dict[speaker_id].append(unnormalize_height_pred)
-            
-            #height_true.append((y_h*h_std+h_mean).item())
-            age_true.append(( y_a*a_std+a_mean).item())
+                if hparams.model_task == 'h':
+                    speaker_height_pred_dict[speaker_id].append(unnormalize_height_pred)
+                elif hparams.model_task == 'a':
+                    speaker_age_pred_dict[speaker_id].append(unnormalize_age_pred)
+                else:
+                    speaker_height_pred_dict[speaker_id].append(unnormalize_height_pred)
+                    speaker_age_pred_dict[speaker_id].append(unnormalize_age_pred)
 
+            height_true.append((y_h*h_std+h_mean).item())
+            age_true.append(( y_a*a_std+a_mean).item())
             gender_true.append(y_g[0])
 
         for speaker_id in list_speaker_id:
-            speaker_age_pred_dict[speaker_id] = sum(speaker_age_pred_dict[speaker_id])/len(speaker_age_pred_dict[speaker_id])
-            df.at[speaker_id, 'age_prediction'] = round(speaker_age_pred_dict[speaker_id], 2)
-
-            #speaker_height_pred_dict[speaker_id] = sum(speaker_height_pred_dict[speaker_id])/len(speaker_height_pred_dict[speaker_id])
-            #df.at[speaker_id, 'height_prediction'] = round(speaker_height_pred_dict[speaker_id], 2)
-        df.to_csv('age_densloss.csv')
+            if hparams.model_task == 'h':
+                speaker_height_pred_dict[speaker_id] = sum(speaker_height_pred_dict[speaker_id])/len(speaker_height_pred_dict[speaker_id])
+                df.at[speaker_id, 'height_prediction'] = round(speaker_height_pred_dict[speaker_id], 2)
+            if hparams.model_task == 'a':
+                speaker_age_pred_dict[speaker_id] = sum(speaker_age_pred_dict[speaker_id])/len(speaker_age_pred_dict[speaker_id])
+                df.at[speaker_id, 'age_prediction'] = round(speaker_age_pred_dict[speaker_id], 2)
+            else:
+                speaker_height_pred_dict[speaker_id] = sum(speaker_height_pred_dict[speaker_id])/len(speaker_height_pred_dict[speaker_id])
+                df.at[speaker_id, 'height_prediction'] = round(speaker_height_pred_dict[speaker_id], 2)
+                speaker_age_pred_dict[speaker_id] = sum(speaker_age_pred_dict[speaker_id])/len(speaker_age_pred_dict[speaker_id])
+                df.at[speaker_id, 'age_prediction'] = round(speaker_age_pred_dict[speaker_id], 2)
+        df.to_csv('densloss.csv')
         
         female_idx = np.where(np.array(gender_true) == 1)[0].reshape(-1).tolist()
         male_idx = np.where(np.array(gender_true) == 0)[0].reshape(-1).tolist()
 
-        #height_true = np.array(height_true)
-        #height_pred = np.array(height_pred)
 
+        height_true = np.array(height_true)
         age_true = np.array(age_true)
-        age_pred = np.array(age_pred)
 
-        #hmae = mean_absolute_error(height_true[male_idx], height_pred[male_idx])
-        #hrmse = mean_squared_error(height_true[male_idx], height_pred[male_idx], squared=False)
-        amae = mean_absolute_error(age_true[male_idx], age_pred[male_idx])
-        armse = mean_squared_error(age_true[male_idx], age_pred[male_idx], squared=False)
-        #print(hrmse, hmae)
-        print(armse, amae)
+        if hparams.model_task == 'h':
+            height_pred = np.array(height_pred)
+            hmae = mean_absolute_error(height_true[male_idx], height_pred[male_idx])
+            hrmse = mean_squared_error(height_true[male_idx], height_pred[male_idx], squared=False)
+            print(hrmse, hmae)
+            hmae = mean_absolute_error(height_true[female_idx], height_pred[female_idx])
+            hrmse = mean_squared_error(height_true[female_idx], height_pred[female_idx], squared=False)
+            print(hrmse, hmae)
+            hmae = mean_absolute_error(height_true, height_pred)
+            hrmse = mean_squared_error(height_true, height_pred, squared=False)
+            print(hrmse, hmae)
 
-        #hmae = mean_absolute_error(height_true[female_idx], height_pred[female_idx])
-        #hrmse = mean_squared_error(height_true[female_idx], height_pred[female_idx], squared=False)
-        amae = mean_absolute_error(age_true[female_idx], age_pred[female_idx])
-        armse = mean_squared_error(age_true[female_idx], age_pred[female_idx], squared=False)
+        elif hparams.model_task == 'a':
+            age_pred = np.array(age_pred)
+            amae = mean_absolute_error(age_true[male_idx], age_pred[male_idx])
+            armse = mean_squared_error(age_true[male_idx], age_pred[male_idx], squared=False)
+            print(armse, amae)
+            amae = mean_absolute_error(age_true[female_idx], age_pred[female_idx])
+            armse = mean_squared_error(age_true[female_idx], age_pred[female_idx], squared=False)
+            print(armse, amae)
+            amae = mean_absolute_error(age_true, age_pred)
+            armse = mean_squared_error(age_true, age_pred, squared=False)
 
-        #print(hrmse, hmae)
-        print(armse, amae)
+            print(armse, amae)
+        else:
+            height_pred = np.array(height_pred)
+            age_pred = np.array(age_pred)
+            hmae = mean_absolute_error(height_true[male_idx], height_pred[male_idx])
+            hrmse = mean_squared_error(height_true[male_idx], height_pred[male_idx], squared=False)
+            amae = mean_absolute_error(age_true[male_idx], age_pred[male_idx])
+            armse = mean_squared_error(age_true[male_idx], age_pred[male_idx], squared=False)
+            print(hrmse, hmae)
+            print(armse, amae)
+
+            hmae = mean_absolute_error(height_true[female_idx], height_pred[female_idx])
+            hrmse = mean_squared_error(height_true[female_idx], height_pred[female_idx], squared=False)
+            amae = mean_absolute_error(age_true[female_idx], age_pred[female_idx])
+            armse = mean_squared_error(age_true[female_idx], age_pred[female_idx], squared=False)
+
+            print(hrmse, hmae)
+            print(armse, amae)
         
-        #hmae = mean_absolute_error(height_true, height_pred)
-        #hrmse = mean_squared_error(height_true, height_pred, squared=False)
-        amae = mean_absolute_error(age_true, age_pred)
-        armse = mean_squared_error(age_true, age_pred, squared=False)
+            hmae = mean_absolute_error(height_true, height_pred)
+            hrmse = mean_squared_error(height_true, height_pred, squared=False)
+            amae = mean_absolute_error(age_true, age_pred)
+            armse = mean_squared_error(age_true, age_pred, squared=False)
 
-        #print(hrmse, hmae)
-        print(armse, amae)
+            print(hrmse, hmae)
+            print(armse, amae)
         
         gender_pred_ = [int(pred[0][0] == True) for pred in gender_pred]
         print(accuracy_score(gender_true, gender_pred_))

@@ -61,12 +61,12 @@ class TIMITDataset(Dataset):
         age_weight = self.df.loc[id, 'age_weight']
         height_weight = self.df.loc[id, 'height_weight']
 
-        if self.model_task == 'ahg':
-            weight = (age_weight + height_weight) / 2
+        if self.model_task == 'h':
+            weight = height_weight
         elif self.model_task == 'a':
             weight = age_weight
         else:
-            weight = height_weight
+            weight = (age_weight + height_weight) / 2
 
         wav, _ = torchaudio.load(os.path.join(self.wav_folder, file))
         
