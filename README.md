@@ -56,6 +56,31 @@ We have uploaded a pretrained model of our experiments.
 
 Download it and put it into the model_checkpoint folder.
 
+## Testing in Simulated Noisy Speech
+### Download the MUSAN dataset
+```bash
+wget https://www.openslr.org/resources/17/musan.tar.gz
+tar -xvzf musan.tar.gz
+```
+
+### Prepare the simulated noisy dataset with 5 noisy level: 5dB, 10dB, 15dB and 20dB.
+```bash
+python TIMIT/create_noisy_data.py --data_path='path to timit data folder' --noise_path='path to timit data folder' --noisy_type='type of noise in musan subfolder'
+```
+
+Example:
+```bash
+python TIMIT/create_noisy_data.py --data_path=data/wav_data --noise_path=data/musan --noisy_type=music
+```
+### Run test on the noisy test set
+```bash
+python test_timit.py --data_path='path to final data folder' --model_checkpoint='path to saved model checkpoint'
+```
+
+Example:
+```bash
+python test_timit.py --data_path=data/wav_data/wav_data_music/5 --model_checkpoint=checkpoints/epoch=1-step=245-v3.ckpt
+```
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
 
