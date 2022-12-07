@@ -28,7 +28,7 @@ def collate_fn(batch):
 if __name__ == "__main__":
 
     parser = ArgumentParser(add_help=True)
-    parser.add_argument('--data_path', type=str, default='/home/project/12001458/ductuan0/speaker_age_height_estimation/data/8k_G711_DSO_data')
+    parser.add_argument('--data_path', type=str, default='/home/project/12001458/ductuan0/speaker_age_height_estimation/data/DSO_data')
     parser.add_argument('--speaker_csv_path', type=str, default=TIMITConfig.speaker_csv_path)
     parser.add_argument('--test_speaker_csv_path', type=str, default='/home/project/12001458/ductuan0/speaker_age_height_estimation/DSO/data_info_height_age.csv')
     parser.add_argument('--batch_size', type=int, default=TIMITConfig.batch_size)
@@ -58,6 +58,7 @@ if __name__ == "__main__":
 
     csv_path = hparams.speaker_csv_path
     df = pd.read_csv(csv_path)
+    df.set_index('ID', inplace=True)
     h_mean = df[df['Use'] == 'TRN']['height'].mean()
     h_std = df[df['Use'] == 'TRN']['height'].std()
     a_mean = df[df['Use'] == 'TRN']['age'].mean()
@@ -76,6 +77,10 @@ if __name__ == "__main__":
             age_true = []
             gender_pred = []
             gender_true = []
+
+            speaker_age_pred_dict = {}
+            speaker_height_pred_dict = {}
+
             list_idx = []
             # Testing Dataset
             test_set = DSODataset(
@@ -108,10 +113,27 @@ if __name__ == "__main__":
                 age_pred.append((y_hat_a*a_std+a_mean).item())
                 gender_pred.append(y_hat_g>0.5)
 
+                for i, speaker_id in enumerate(idx):
+                    if speaker_id not in speaker_age_pred_dict:
+                        speaker_age_pred_dict[speaker_id] = []
+                        speaker_height_pred_dict[speaker_id] = []
+
+                for i, speaker_id in enumerate(idx):
+                    speaker_age_pred_dict[speaker_id].append(y_hat_a*a_std+a_mean)
+                    speaker_height_pred_dict[speaker_id].append(y_hat_a*a_std+a_mean)
+
                 height_true.append((y_h*h_std+h_mean).item())
                 age_true.append(( y_a*a_std+a_mean).item())
                 gender_true.append(y_g[0])
                 list_idx.append(idx)
+
+            for speaker_id in list_idx:
+                speaker_age_pred_dict[speaker_id] = sum(speaker_age_pred_dict[speaker_id])/len(speaker_age_pred_dict[speaker_id])
+                speaker_height_pred_dict[speaker_id] = sum(speaker_height_pred_dict[speaker_id])/len(speaker_height_pred_dict[speaker_id])
+                df.at[speaker_id, 'age_prediction'] = round(speaker_age_pred_dict[speaker_id], 2)
+                df.at[speaker_id, 'height_prediction'] = round(speaker_height_pred_dict[speaker_id], 2)
+
+            df.to_csv('dso_{}_test_w2w2.csv'.format(test_set))
 
             female_idx = np.where(np.array(gender_true) == 1)[0].reshape(-1).tolist()
             male_idx = np.where(np.array(gender_true) == 0)[0].reshape(-1).tolist()

@@ -34,8 +34,8 @@ class DSODataset(Dataset):
         
         file = self.files[idx]
         speaker_id = int(file.split('.')[0])
-        id = self.df[(self.df['Language'] == self.language) & (self.df['utt_begin_id'] <= speaker_id) & (self.df['utt_end_id'] >= speaker_id)].index
-        gender = self.gender_dict[self.df.loc[id, 'Gender'].item()]
+        id = str(self.df[(self.df['Language'] == self.language) & (self.df['utt_begin_id'] <= speaker_id) & (self.df['utt_end_id'] >= speaker_id)].index.format()[0])
+        gender = self.gender_dict[self.df.loc[id, 'Gender']]
         height = self.df.loc[id, 'Height'].item()
         age =  self.df.loc[id, 'Age'].item()
         
@@ -54,4 +54,4 @@ class DSODataset(Dataset):
         height = (height - h_mean)/h_std
         age = (age - a_mean)/a_std
         
-        return wav, torch.FloatTensor([height]), torch.FloatTensor([age]), torch.FloatTensor([gender]), file
+        return wav, torch.FloatTensor([height]), torch.FloatTensor([age]), torch.FloatTensor([gender]), id 
