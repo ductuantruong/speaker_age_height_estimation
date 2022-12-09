@@ -154,7 +154,7 @@ if __name__ == "__main__":
             if hparams.model_task == 'h':
                 speaker_height_pred_dict[speaker_id] = sum(speaker_height_pred_dict[speaker_id])/len(speaker_height_pred_dict[speaker_id])
                 df.at[speaker_id, 'height_prediction'] = round(speaker_height_pred_dict[speaker_id], 2)
-            if hparams.model_task == 'a':
+            elif hparams.model_task == 'a':
                 speaker_age_pred_dict[speaker_id] = sum(speaker_age_pred_dict[speaker_id])/len(speaker_age_pred_dict[speaker_id])
                 df.at[speaker_id, 'age_prediction'] = round(speaker_age_pred_dict[speaker_id], 2)
             else:
@@ -162,7 +162,7 @@ if __name__ == "__main__":
                 df.at[speaker_id, 'height_prediction'] = round(speaker_height_pred_dict[speaker_id], 2)
                 speaker_age_pred_dict[speaker_id] = sum(speaker_age_pred_dict[speaker_id])/len(speaker_age_pred_dict[speaker_id])
                 df.at[speaker_id, 'age_prediction'] = round(speaker_age_pred_dict[speaker_id], 2)
-        df.to_csv('densloss.csv')
+        df.to_csv('wavlm_densloss_h.csv')
         
         female_idx = np.where(np.array(gender_true) == 1)[0].reshape(-1).tolist()
         male_idx = np.where(np.array(gender_true) == 0)[0].reshape(-1).tolist()
