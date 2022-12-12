@@ -41,6 +41,7 @@ class TIMITDataset(Dataset):
         
         file = self.files[idx]
         id = file.split('_')[0][1:]
+        speaker_id= id
         g_id = file.split('_')[0]
         gender = self.gender_dict[self.df.loc[id, 'Sex']]
         height = self.df.loc[id, 'height']
@@ -92,4 +93,7 @@ class TIMITDataset(Dataset):
         start_height = max(round(height) - 5, 140)
         end_height = min(round(height) + 5 + 1, 200)
         heigh_dist[(start_height - 140):(end_height - 140)] = torch.exp(label_dist_transform.log_prob(torch.Tensor(list(range(start_height, end_height)))))
-        return wav, torch.FloatTensor([height]), torch.FloatTensor([age]), heigh_dist, torch.FloatTensor([gender])
+        if 'test' not in self.wav_folder.lower():            
+            return wav, torch.FloatTensor([height]), torch.FloatTensor([age]), heigh_dist, torch.FloatTensor([gender])
+        else:
+            return wav, torch.FloatTensor([height]), torch.FloatTensor([age]), torch.FloatTensor([gender]), speaker_id
