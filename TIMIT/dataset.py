@@ -96,4 +96,4 @@ class TIMITDataset(Dataset):
         if 'test' not in self.wav_folder.lower():            
             return wav, torch.FloatTensor([height]), torch.FloatTensor([age]), heigh_dist, torch.FloatTensor([gender])
         else:
-            return wav, torch.FloatTensor([height]), torch.FloatTensor([age]), torch.FloatTensor([gender]), speaker_id
+            return wav, torch.FloatTensor([height]), torch.FloatTensor([age]), heigh_dist, torch.FloatTensor([gender]), speaker_id

@@ -117,14 +117,14 @@ if __name__ == "__main__":
             y_hat_g = y_hat_g.to('cpu')
             y_hat_h_dist = y_hat_h_dist.to('cpu')
 
-            unnormalize_height_pred = (y_hat_h*h_std+h_mean).item()
+            unnormalize_height_pred = y_hat_h.item()
             height_pred.append(unnormalize_height_pred)
             gender_pred.append(y_hat_g>0.5)
 
             for i, speaker_id in enumerate(batch_speaker_id):
                 speaker_height_pred_dict[speaker_id].append(unnormalize_height_pred)
 
-            height_true.append((y_h*h_std+h_mean).item())
+            height_true.append(y_h.item())
             gender_true.append(y_g[0])
 
         for speaker_id in list_speaker_id:
