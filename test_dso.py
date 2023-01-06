@@ -65,6 +65,8 @@ if __name__ == "__main__":
     a_mean = df[df['Use'] == 'TRN']['age'].mean()
     a_std = df[df['Use'] == 'TRN']['age'].std()
 
+    df = pd.read_csv(hparams.test_speaker_csv_path)
+    df.set_index('ID', inplace=True)
     #Testing the Model
     if hparams.model_checkpoint:
         if hparams.model_task == 'h':
@@ -77,7 +79,9 @@ if __name__ == "__main__":
         model.to(device)
         model.eval()
         list_test_set = ['ENGLISH', 'CHINESE']
-        for test_set in list_test_set:
+        #list_test_set = ['ENGLISH']
+        for test_set_name in list_test_set:
+            print('Test on {} corpus'.format(test_set_name))
             height_pred = []
             height_true = []
             age_pred = []
@@ -91,8 +95,8 @@ if __name__ == "__main__":
             list_idx = []
             # Testing Dataset
             test_set = DSODataset(
-                wav_folder = os.path.join(hparams.data_path, test_set),
-                language = test_set.capitalize(),
+                wav_folder = os.path.join(hparams.data_path, test_set_name),
+                language = test_set_name.capitalize(),
                 hparams = hparams
             )
 
@@ -146,17 +150,16 @@ if __name__ == "__main__":
                     else:
                         speaker_height_pred_dict[speaker_id].append(unnormalize_height_pred)
                         speaker_age_pred_dict[speaker_id].append(unnormalize_age_pred)
-
+                    list_idx.append(speaker_id)
                 height_true.append((y_h*h_std+h_mean).item())
-                age_true.append(( y_a*a_std+a_mean).item())
+                age_true.append((y_a*a_std+a_mean).item())
                 gender_true.append(y_g[0])
-                list_idx.append(idx)
 
-            for speaker_id in list_idx:
+            for speaker_id in list(set(list_idx)):
                 if hparams.model_task == 'h':
                     speaker_height_pred_dict[speaker_id] = sum(speaker_height_pred_dict[speaker_id])/len(speaker_height_pred_dict[speaker_id])
                     df.at[speaker_id, 'height_prediction'] = round(speaker_height_pred_dict[speaker_id], 2)
-                if hparams.model_task == 'a':
+                elif hparams.model_task == 'a':
                     speaker_age_pred_dict[speaker_id] = sum(speaker_age_pred_dict[speaker_id])/len(speaker_age_pred_dict[speaker_id])
                     df.at[speaker_id, 'age_prediction'] = round(speaker_age_pred_dict[speaker_id], 2)
                 else:
@@ -165,11 +168,13 @@ if __name__ == "__main__":
                     speaker_age_pred_dict[speaker_id] = sum(speaker_age_pred_dict[speaker_id])/len(speaker_age_pred_dict[speaker_id])
                     df.at[speaker_id, 'age_prediction'] = round(speaker_age_pred_dict[speaker_id], 2)
 
-            df.to_csv('dso_{}_test_w2w2.csv'.format(test_set))
+            df.to_csv('dso_{}_test_w2v2_denseloss_h.csv'.format(test_set_name))
 
             female_idx = np.where(np.array(gender_true) == 1)[0].reshape(-1).tolist()
             male_idx = np.where(np.array(gender_true) == 0)[0].reshape(-1).tolist()
 
+            height_true = np.array(height_true)
+            age_true = np.array(age_true)
             if hparams.model_task == 'h':
                 height_pred = np.array(height_pred)
                 hmae = mean_absolute_error(height_true[male_idx], height_pred[male_idx])
@@ -221,13 +226,8 @@ if __name__ == "__main__":
                 print(armse, amae)
 
             gender_pred_ = [int(pred[0][0] == True) for pred in gender_pred]
-            #print(gender_pred)
-            #print(gender_true)
             print(accuracy_score(gender_true, gender_pred_))
             print(confusion_matrix(gender_true, gender_pred_))
-            #for i in range(len(gender_pred_)):
-            #    if gender_pred_[i] != gender_true[i].item():
-            #        print(list_idx[i], gender_pred_[i], gender_true[i].item())
 
     else:
         print('Model chekpoint not found for Testing !!!')

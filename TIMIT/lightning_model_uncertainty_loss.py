@@ -12,7 +12,7 @@ import torch_optimizer as optim
 
 from Model.models import Wav2vec2BiEncoder, Wav2vec2BiEncoderAge, Wav2vec2BiEncoderHeight
 
-from Model.utils import RMSELoss, UncertaintyLoss
+from Model.utils import RMSELoss, UncertaintyLoss, UncertaintyLossAge, UncertaintyLossHeight
 
 class LightningModel(pl.LightningModule):
     def __init__(self, HPARAMS):
@@ -138,7 +138,7 @@ class LightningModelAge(pl.LightningModule):
         self.rmse_criterion = RMSELoss()
         self.accuracy = Accuracy()
 
-        self.uncertainty_loss = UncertaintyLoss()
+        self.uncertainty_loss = UncertaintyLossAge()
 
         self.lr = HPARAMS['lr']
 
@@ -236,7 +236,7 @@ class LightningModelHeight(pl.LightningModule):
         self.rmse_criterion = RMSELoss()
         self.accuracy = Accuracy()
 
-        self.uncertainty_loss = UncertaintyLoss()
+        self.uncertainty_loss = UncertaintyLossHeight()
 
         self.lr = HPARAMS['lr']
 
