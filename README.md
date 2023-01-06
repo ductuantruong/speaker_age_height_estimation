@@ -48,9 +48,22 @@ python test_timit.py --data_path=/notebooks/SpeakerProfiling/TIMIT_Dataset/wav_d
 ```
 
 ### Pretrained Model
-We have uploaded a pretrained model of our experiments. You can download the from [Dropbox](https://www.dropbox.com/s/e9juyocxgigvekl/epoch%3D24-step%3D12249.ckpt?dl=0).
+We have uploaded a pretrained model of our experiments. 
 
-Download it and put it into the model_checkpoint folder.
+* You can download pretrained model using wav2vec2.0Base from [Dropbox](https://www.dropbox.com/s/e9juyocxgigvekl/epoch%3D24-step%3D12249.ckpt?dl=0).
+
+* You can download pretrained model using WavLMBase+ from [OneDrive](https://entuedu-my.sharepoint.com/:u:/g/personal/ductuan001_e_ntu_edu_sg/EflWN1guTitDmSbz76B0xtwBIu9TeWPtEwn1SBj1HrWtxA?e=SJd71i). To use WavLMBase+ as upstream model, change the argument `--upstream_model` to `wavlm`
+
+## Testing with DSO test set
+### Run test on the noisy test set
+```bash
+python test_dso.py --data_path='path to final data folder' --model_checkpoint='path to saved model checkpoint'
+```
+
+Example:
+```bash
+python test_dso.py --data_path=data/DSO_data/ --test_speaker_csv_path=DSO/data_info_height_age.csv  --model_checkpoint=checkpoints/epoch=1-step=245-v3.ckpt
+```
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)

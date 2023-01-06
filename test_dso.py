@@ -28,9 +28,9 @@ def collate_fn(batch):
 if __name__ == "__main__":
 
     parser = ArgumentParser(add_help=True)
-    parser.add_argument('--data_path', type=str, default='/home/project/12001458/ductuan0/speaker_age_height_estimation/data/DSO_data')
+    parser.add_argument('--data_path', type=str, default='data/DSO_data')
     parser.add_argument('--speaker_csv_path', type=str, default=TIMITConfig.speaker_csv_path)
-    parser.add_argument('--test_speaker_csv_path', type=str, default='/home/project/12001458/ductuan0/speaker_age_height_estimation/DSO/data_info_height_age.csv')
+    parser.add_argument('--test_speaker_csv_path', type=str, default='DSO/data_info_height_age.csv')
     parser.add_argument('--batch_size', type=int, default=TIMITConfig.batch_size)
     parser.add_argument('--epochs', type=int, default=TIMITConfig.epochs)
     parser.add_argument('--num_layers', type=int, default=TIMITConfig.num_layers)
